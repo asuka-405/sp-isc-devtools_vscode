@@ -10,7 +10,7 @@ export function normalizeNames(input: string) {
     let lowerNext = false;
 
     for (let item of items) {
-        // very specific to manage https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/73
+        // very specific to manage https://github.com/asuka-405/sp-isc-devtools/issues/73
         if (lowerNext && item !== "") {
             result += item.toLowerCase()
             lowerNext = false;

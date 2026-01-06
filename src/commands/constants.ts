@@ -1,4 +1,4 @@
-const COMMAND_PREFIX = 'vscode-sailpoint-identitynow';
+const COMMAND_PREFIX = 'sp-isc-devtools';
 export const OPEN_URL = `${COMMAND_PREFIX}.open-url`;
 export const OPEN_RESOURCE = `${COMMAND_PREFIX}.open-resource`;
 export const REMOVE_RESOURCE = `${COMMAND_PREFIX}.remove-resource`;

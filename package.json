@@ -1,18 +1,18 @@
 {
-  "name": "vscode-sailpoint-identitynow",
-  "displayName": "SailPoint Identity Security Cloud",
-  "description": "Customize SailPoint Identity Security Cloud",
-  "version": "1.3.23",
-  "publisher": "yannick-beot-sp",
+  "name": "sp-isc-devtools",
+  "displayName": "SailPoint ISC Dev Tools (beta)",
+  "description": "Accelerate development of SailPoint ISC by providing tools for managing tenants, sources, transforms, and more. This is a fork of SailPoint Identity Security Cloud extension by Yannick Beot.",
+  "version": "0.0.1",
+  "publisher": "ArchDev",
   "icon": "resources/isc.png",
   "bugs": {
-    "url": "https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues"
+    "url": "https://github.com/asuka-405/sp-isc-devtools/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow.git"
+    "url": "https://github.com/asuka-405/sp-isc-devtools.git"
   },
-  "homepage": "https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/",
+  "homepage": "https://sp-isc-vscode.archdev.in",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -41,16 +41,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "sailpoint",
-          "title": "SailPoint Identity Security Cloud",
+          "id": "sp-isc-devtools",
+          "title": "SailPoint ISC Dev Tools",
           "icon": "resources/isc.svg"
         }
       ]
     },
     "views": {
-      "sailpoint": [
+      "sp-isc-devtools": [
         {
-          "id": "vscode-sailpoint-identitynow.view",
+          "id": "sp-isc-devtools.view",
           "name": "Identity Security Cloud Tenants",
           "icon": "resources/isc.svg"
         }
@@ -58,306 +58,306 @@
     },
     "viewsWelcome": [
       {
-        "view": "vscode-sailpoint-identitynow.view",
-        "contents": "No tenant.\n[Add Tenant](command:vscode-sailpoint-identitynow.add-tenant)"
+        "view": "sp-isc-devtools.view",
+        "contents": "No tenant.\n[Add Tenant](command:sp-isc-devtools.add-tenant)"
       }
     ],
     "commands": [
       {
-        "command": "vscode-sailpoint-identitynow.add-tenant",
+        "command": "sp-isc-devtools.add-tenant",
         "title": "ISC: Add tenant...",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.folder.add-root",
+        "command": "sp-isc-devtools.folder.add-root",
         "title": "ISC: Add folder",
         "icon": "$(new-folder)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.folder.add",
+        "command": "sp-isc-devtools.folder.add",
         "title": "Add folder",
         "icon": "$(new-folder)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.folder.rename",
+        "command": "sp-isc-devtools.folder.rename",
         "title": "Rename"
       },
       {
-        "command": "vscode-sailpoint-identitynow.folder.remove",
+        "command": "sp-isc-devtools.folder.remove",
         "title": "Remove folder"
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.set-writable",
+        "command": "sp-isc-devtools.tenant.set-writable",
         "title": "Read-only",
         "icon": "$(lock)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.set-readonly",
+        "command": "sp-isc-devtools.tenant.set-readonly",
         "title": "Writable",
         "icon": "$(unlock)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.remove-tenant",
+        "command": "sp-isc-devtools.remove-tenant",
         "title": "Remove tenant"
       },
       {
-        "command": "vscode-sailpoint-identitynow.rename-tenant",
+        "command": "sp-isc-devtools.rename-tenant",
         "title": "Rename tenant"
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.edit.public-identities-config",
+        "command": "sp-isc-devtools.tenant.edit.public-identities-config",
         "title": "Edit public identities configuration..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.edit.access-request-config",
+        "command": "sp-isc-devtools.tenant.edit.access-request-config",
         "title": "Edit access request configuration..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.edit.password-org-config",
+        "command": "sp-isc-devtools.tenant.edit.password-org-config",
         "title": "Edit password org configuration..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.edit.org-config",
+        "command": "sp-isc-devtools.tenant.edit.org-config",
         "title": "Edit organization configuration..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.generate-digit-token",
+        "command": "sp-isc-devtools.tenant.generate-digit-token",
         "title": "Generate a digit token for password reset..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.tenant.email-settings",
+        "command": "sp-isc-devtools.tenant.email-settings",
         "title": "Edit email settings..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.export-config.view",
+        "command": "sp-isc-devtools.export-config.view",
         "title": "Export config...",
         "icon": "$(export)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.export-config.palette",
+        "command": "sp-isc-devtools.export-config.palette",
         "title": "ISC: Export config...",
         "icon": "$(export)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.export-node-config.view",
+        "command": "sp-isc-devtools.export-node-config.view",
         "title": "Export sp-config...",
         "icon": "$(export)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.upload-config.view",
+        "command": "sp-isc-devtools.upload-config.view",
         "title": "Upload config to Configuration Hub...",
         "icon": "$(import)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.import-config.view",
+        "command": "sp-isc-devtools.import-config.view",
         "title": "Import config...",
         "icon": "$(export)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.import-config.palette",
+        "command": "sp-isc-devtools.import-config.palette",
         "title": "ISC: Import config...",
         "icon": "$(import)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.import-config.menu",
+        "command": "sp-isc-devtools.import-config.menu",
         "title": "ISC: Import config...",
         "icon": "$(import)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.modified-resource",
+        "command": "sp-isc-devtools.modified-resource",
         "title": "Modified resource"
       },
       {
-        "command": "vscode-sailpoint-identitynow.refresh-forced",
+        "command": "sp-isc-devtools.refresh-forced",
         "title": "ISC: Refresh",
         "icon": "$(refresh)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.refresh",
+        "command": "sp-isc-devtools.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.open-resource",
+        "command": "sp-isc-devtools.open-resource",
         "title": "Open"
       },
       {
-        "command": "vscode-sailpoint-identitynow.open-url",
+        "command": "sp-isc-devtools.open-url",
         "title": "Open in Web UI"
       },
       {
-        "command": "vscode-sailpoint-identitynow.remove-resource",
+        "command": "sp-isc-devtools.remove-resource",
         "title": "Delete",
         "icon": "$(trash)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.load-more",
+        "command": "sp-isc-devtools.load-more",
         "title": "Load More"
       },
       {
-        "command": "vscode-sailpoint-identitynow.roles.filter",
+        "command": "sp-isc-devtools.roles.filter",
         "title": "Filter",
         "icon": "$(filter)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.roles.update-filter",
+        "command": "sp-isc-devtools.roles.update-filter",
         "title": "Filter",
         "icon": "$(filter-filled)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.access-profiles.filter",
+        "command": "sp-isc-devtools.access-profiles.filter",
         "title": "Filter",
         "icon": "$(filter)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.access-profiles.update-filter",
+        "command": "sp-isc-devtools.access-profiles.update-filter",
         "title": "Filter",
         "icon": "$(filter-filled)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.aggregate-source",
+        "command": "sp-isc-devtools.aggregate-source",
         "title": "Aggregate source"
       },
       {
-        "command": "vscode-sailpoint-identitynow.aggregate-source-disable-optimization",
+        "command": "sp-isc-devtools.aggregate-source-disable-optimization",
         "title": "Aggregate source without optimization"
       },
       {
-        "command": "vscode-sailpoint-identitynow.aggregate-entitlements",
+        "command": "sp-isc-devtools.aggregate-entitlements",
         "title": "Aggregate entitlements"
       },
       {
-        "command": "vscode-sailpoint-identitynow.test-source",
+        "command": "sp-isc-devtools.test-source",
         "title": "Test connection",
         "icon": "$(beaker)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.test-source.palette",
+        "command": "sp-isc-devtools.test-source.palette",
         "title": "ISC: Test connection...",
         "icon": "$(beaker)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.peek-source",
+        "command": "sp-isc-devtools.peek-source",
         "title": "Peek objects",
         "icon": "$(eye)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.peek-source.palette",
+        "command": "sp-isc-devtools.peek-source.palette",
         "title": "ISC: Peek objects...",
         "icon": "$(eye)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.enable-logging",
+        "command": "sp-isc-devtools.enable-logging",
         "title": "Enable logging...",
         "icon": "$(debug)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.enable-logging.palette",
+        "command": "sp-isc-devtools.enable-logging.palette",
         "title": "ISC: Enable logging for a source...",
         "icon": "$(debug)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.ping-source",
+        "command": "sp-isc-devtools.ping-source",
         "title": "Ping cluster",
         "icon": "$(eye)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.ping-source.palette",
+        "command": "sp-isc-devtools.ping-source.palette",
         "title": "ISC: Pinging Cluster ...",
         "icon": "$(eye)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.clone-source",
+        "command": "sp-isc-devtools.clone-source",
         "title": "Clone source",
         "icon": "$(symbol-enum)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.clone-source.palette",
+        "command": "sp-isc-devtools.clone-source.palette",
         "title": "ISC: Clone source...",
         "icon": "$(symbol-enum)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.reset-source",
+        "command": "sp-isc-devtools.reset-source",
         "title": "Reset source",
         "group": "reset@2"
       },
       {
-        "command": "vscode-sailpoint-identitynow.reset-source-accounts",
+        "command": "sp-isc-devtools.reset-source-accounts",
         "title": "Reset accounts",
         "group": "reset@2"
       },
       {
-        "command": "vscode-sailpoint-identitynow.reset-source-entitlements",
+        "command": "sp-isc-devtools.reset-source-entitlements",
         "title": "Reset entitlements",
         "group": "reset@2"
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.import.accounts.view",
+        "command": "sp-isc-devtools.source.import.accounts.view",
         "title": "Import accounts..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.import.accounts.disable-optimization.view",
+        "command": "sp-isc-devtools.source.import.accounts.disable-optimization.view",
         "title": "Import accounts without optimization..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.import.entitlements.view",
+        "command": "sp-isc-devtools.source.import.entitlements.view",
         "title": "Import entitlements..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.import.uncorrelated-accounts.view",
+        "command": "sp-isc-devtools.source.import.uncorrelated-accounts.view",
         "title": "Import uncorrelated accounts..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.import.entitlement-details.view",
+        "command": "sp-isc-devtools.source.import.entitlement-details.view",
         "title": "Import entitlement details..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.export.accounts.view",
+        "command": "sp-isc-devtools.source.export.accounts.view",
         "title": "Export accounts..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.export.uncorrelated-accounts.view",
+        "command": "sp-isc-devtools.source.export.uncorrelated-accounts.view",
         "title": "Export uncorrelated accounts..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.source.export.entitlement-details.view",
+        "command": "sp-isc-devtools.source.export.entitlement-details.view",
         "title": "Export entitlement details..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-transform",
+        "command": "sp-isc-devtools.new-transform",
         "title": "New transform",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.transform.clone",
+        "command": "sp-isc-devtools.transform.clone",
         "title": "Clone transform"
       },
       {
-        "command": "vscode-sailpoint-identitynow.transform.clone.palette",
+        "command": "sp-isc-devtools.transform.clone.palette",
         "title": "ISC: Clone transform..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-provisioning-policy",
+        "command": "sp-isc-devtools.new-provisioning-policy",
         "title": "New provisioning policy",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-schema",
+        "command": "sp-isc-devtools.new-schema",
         "title": "New Schema",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.workflow.enable",
+        "command": "sp-isc-devtools.workflow.enable",
         "title": "Enable",
         "icon": "$(debug-start)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.workflow.disable",
+        "command": "sp-isc-devtools.workflow.disable",
         "title": "Disable",
         "icon": "$(debug-stop)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.workflow.export",
+        "command": "sp-isc-devtools.workflow.export",
         "title": "Export",
         "icon": {
           "light": "resources/light/export.svg",
@@ -365,7 +365,7 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.workflow.import.view-icon",
+        "command": "sp-isc-devtools.workflow.import.view-icon",
         "title": "Import...",
         "icon": {
           "light": "resources/light/import.svg",
@@ -373,7 +373,7 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.workflow.import",
+        "command": "sp-isc-devtools.workflow.import",
         "title": "Import...",
         "icon": {
           "light": "resources/light/import.svg",
@@ -381,56 +381,56 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.workflow.view-execution-history",
+        "command": "sp-isc-devtools.workflow.view-execution-history",
         "title": "View execution history..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.transform.evaluate",
+        "command": "sp-isc-devtools.transform.evaluate",
         "title": "Evaluate locally..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.transform.evaluate.cloud",
+        "command": "sp-isc-devtools.transform.evaluate.cloud",
         "title": "Preview..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.transform.evaluate.cloud.editor",
+        "command": "sp-isc-devtools.transform.evaluate.cloud.editor",
         "title": "ISC: Preview this transform..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.transform.evaluate.editor",
+        "command": "sp-isc-devtools.transform.evaluate.editor",
         "title": "ISC: Evaluate this transform locally..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-connector-rule",
+        "command": "sp-isc-devtools.new-connector-rule",
         "title": "New connector rule",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.connector-rule.upload",
+        "command": "sp-isc-devtools.connector-rule.upload",
         "title": "ISC: Upload this code to a rule..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.connector-rule.validate",
+        "command": "sp-isc-devtools.connector-rule.validate",
         "title": "ISC: Validate this code..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.connector-rule.export-script.editor",
+        "command": "sp-isc-devtools.connector-rule.export-script.editor",
         "title": "ISC: Export the script from this rule..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.connector-rule.export-script.view",
+        "command": "sp-isc-devtools.connector-rule.export-script.view",
         "title": "Export the script..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.connector-rule.edit",
+        "command": "sp-isc-devtools.connector-rule.edit",
         "title": "Edit script"
       },
       {
-        "command": "vscode-sailpoint-identitynow.identity-profile.refresh",
+        "command": "sp-isc-devtools.identity-profile.refresh",
         "title": "Refresh all identities"
       },
       {
-        "command": "vscode-sailpoint-identitynow.identity-profiles.sort.name",
+        "command": "sp-isc-devtools.identity-profiles.sort.name",
         "title": "Sort by name",
         "icon": {
           "light": "resources/light/sort-alphabetically.svg",
@@ -438,7 +438,7 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.identity-profiles.sort.priority",
+        "command": "sp-isc-devtools.identity-profiles.sort.priority",
         "title": "Sort by priority",
         "icon": {
           "light": "resources/light/sort-number.svg",
@@ -446,41 +446,41 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-access-profile.view",
+        "command": "sp-isc-devtools.new-access-profile.view",
         "title": "New Access Profile",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-access-profile.palette",
+        "command": "sp-isc-devtools.new-access-profile.palette",
         "title": "ISC: Add a new access profile...",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-access-profile.view-icon",
+        "command": "sp-isc-devtools.new-access-profile.view-icon",
         "title": "New Access Profile",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-role.view",
+        "command": "sp-isc-devtools.new-role.view",
         "title": "New Role",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-role.palette",
+        "command": "sp-isc-devtools.new-role.palette",
         "title": "ISC: Add a new role...",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-role.view-icon",
+        "command": "sp-isc-devtools.new-role.view-icon",
         "title": "New Role",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.export.access-profiles.view",
+        "command": "sp-isc-devtools.csv.export.access-profiles.view",
         "title": "Export all Access Profiles as CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.export.access-profiles-icon.view",
+        "command": "sp-isc-devtools.csv.export.access-profiles-icon.view",
         "title": "Export all Access Profiles as CSV...",
         "icon": {
           "light": "resources/light/export.svg",
@@ -488,19 +488,19 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.export.roles.view",
+        "command": "sp-isc-devtools.csv.export.roles.view",
         "title": "Export all Roles as CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.export.dimensions.view",
+        "command": "sp-isc-devtools.csv.export.dimensions.view",
         "title": "Export all Dimensions as CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.import.dimensions.view",
+        "command": "sp-isc-devtools.csv.import.dimensions.view",
         "title": "Import Dimensions as CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.export.roles-icon.view",
+        "command": "sp-isc-devtools.csv.export.roles-icon.view",
         "title": "Export all Roles as CSV...",
         "icon": {
           "light": "resources/light/export.svg",
@@ -508,11 +508,11 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.import.access-profiles.view",
+        "command": "sp-isc-devtools.csv.import.access-profiles.view",
         "title": "Import Access Profiles CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.import.access-profiles-icon.view",
+        "command": "sp-isc-devtools.csv.import.access-profiles-icon.view",
         "title": "Import Access Profiles CSV...",
         "icon": {
           "light": "resources/light/import.svg",
@@ -520,15 +520,15 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.import.access-profiles.explorer",
+        "command": "sp-isc-devtools.csv.import.access-profiles.explorer",
         "title": "ISC: Import Access Profiles CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.import.roles.view",
+        "command": "sp-isc-devtools.csv.import.roles.view",
         "title": "Import Roles CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.import.roles-icon.view",
+        "command": "sp-isc-devtools.csv.import.roles-icon.view",
         "title": "Import Roles CSV...",
         "icon": {
           "light": "resources/light/import.svg",
@@ -536,19 +536,19 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.csv.import.roles.explorer",
+        "command": "sp-isc-devtools.csv.import.roles.explorer",
         "title": "ISC: Import Roles CSV..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.forms.export.view",
+        "command": "sp-isc-devtools.forms.export.view",
         "title": "Export forms..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.form.export.view",
+        "command": "sp-isc-devtools.form.export.view",
         "title": "Export form..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.forms.export.icon-view",
+        "command": "sp-isc-devtools.forms.export.icon-view",
         "title": "Export forms...",
         "icon": {
           "light": "resources/light/export.svg",
@@ -556,11 +556,11 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.forms.import.view",
+        "command": "sp-isc-devtools.forms.import.view",
         "title": "Import forms..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.forms.import.icon-view",
+        "command": "sp-isc-devtools.forms.import.icon-view",
         "title": "Import forms...",
         "icon": {
           "light": "resources/light/import.svg",
@@ -568,1117 +568,1117 @@
         }
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-attribute-search.view",
+        "command": "sp-isc-devtools.new-attribute-search.view",
         "title": "New Search Attribute",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.new-identity-attribute.view",
+        "command": "sp-isc-devtools.new-identity-attribute.view",
         "title": "New Identity Attribute",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.identities.icon-search",
+        "command": "sp-isc-devtools.identities.icon-search",
         "title": "Search Identity",
         "icon": "$(search)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.identities.search",
+        "command": "sp-isc-devtools.identities.search",
         "title": "Search identities..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.identities.delete",
+        "command": "sp-isc-devtools.identities.delete",
         "title": "Delete"
       },
       {
-        "command": "vscode-sailpoint-identitynow.identities.att-sync",
+        "command": "sp-isc-devtools.identities.att-sync",
         "title": "Synchronize attributes"
       },
       {
-        "command": "vscode-sailpoint-identitynow.identities.process",
+        "command": "sp-isc-devtools.identities.process",
         "title": "Process"
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.filter.source",
+        "command": "sp-isc-devtools.applications.filter.source",
         "title": "Filter applications by source...",
         "icon": "$(filter)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.update-filter.source",
+        "command": "sp-isc-devtools.applications.update-filter.source",
         "title": "Filter applications by source...",
         "icon": "$(filter-filled)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.filter.name",
+        "command": "sp-isc-devtools.applications.filter.name",
         "title": "Search applications by name...",
         "icon": "$(search)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.remove.access-profile",
+        "command": "sp-isc-devtools.applications.remove.access-profile",
         "title": "Remove access profile from application"
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.add.access-profile",
+        "command": "sp-isc-devtools.applications.add.access-profile",
         "title": "Add access profiles to application...",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.new",
+        "command": "sp-isc-devtools.applications.new",
         "title": "Add new application..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.new.view-icon",
+        "command": "sp-isc-devtools.applications.new.view-icon",
         "title": "Add new application...",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.applications.new.palette",
+        "command": "sp-isc-devtools.applications.new.palette",
         "title": "ISC: Add new application...",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.panel",
+        "command": "sp-isc-devtools.campaigns.panel",
         "title": "View campaign dashboard"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.export.report",
+        "command": "sp-isc-devtools.campaigns.export.report",
         "title": "Export campaign status report"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.reassign.owners",
+        "command": "sp-isc-devtools.campaigns.reassign.owners",
         "title": "Reassign to access owners"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.reassign.custom",
+        "command": "sp-isc-devtools.campaigns.reassign.custom",
         "title": "Reassign using custom logic..."
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.reminder.configure",
+        "command": "sp-isc-devtools.campaigns.reminder.configure",
         "title": "Configure reminder...",
         "icon": "$(gear)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.reminder.send",
+        "command": "sp-isc-devtools.campaigns.reminder.send",
         "title": "Send reminders"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.escalate",
+        "command": "sp-isc-devtools.campaigns.escalate",
         "title": "Escalate to managers"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.filter.name",
+        "command": "sp-isc-devtools.campaigns.filter.name",
         "title": "Search certification campaign by name...",
         "icon": "$(search)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.campaigns.filter.status",
+        "command": "sp-isc-devtools.campaigns.filter.status",
         "title": "Filter certification campaign by status...",
         "icon": "$(filter-filled)"
       },
       {
-        "command": "vscode-sailpoint-identitynow.service-desk-integrations.edit.status-check-configuration",
+        "command": "sp-isc-devtools.service-desk-integrations.edit.status-check-configuration",
         "title": "Edit time check configuration..."
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "vscode-sailpoint-identitynow.modified-resource",
+          "command": "sp-isc-devtools.modified-resource",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.refresh",
+          "command": "sp-isc-devtools.refresh",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.set-readonly",
+          "command": "sp-isc-devtools.tenant.set-readonly",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.set-writable",
+          "command": "sp-isc-devtools.tenant.set-writable",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.rename-tenant",
+          "command": "sp-isc-devtools.rename-tenant",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.remove-tenant",
+          "command": "sp-isc-devtools.remove-tenant",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.public-identities-config",
+          "command": "sp-isc-devtools.tenant.edit.public-identities-config",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.access-request-config",
+          "command": "sp-isc-devtools.tenant.edit.access-request-config",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.password-org-config",
+          "command": "sp-isc-devtools.tenant.edit.password-org-config",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.org-config",
+          "command": "sp-isc-devtools.tenant.edit.org-config",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.generate-digit-token",
+          "command": "sp-isc-devtools.tenant.generate-digit-token",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.email-settings",
+          "command": "sp-isc-devtools.tenant.email-settings",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.export-config.view",
+          "command": "sp-isc-devtools.export-config.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.export-node-config.view",
+          "command": "sp-isc-devtools.export-node-config.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.upload-config.view",
+          "command": "sp-isc-devtools.upload-config.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.import-config.view",
+          "command": "sp-isc-devtools.import-config.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.import-config.menu",
+          "command": "sp-isc-devtools.import-config.menu",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.aggregate-source",
+          "command": "sp-isc-devtools.aggregate-source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.open-url",
+          "command": "sp-isc-devtools.open-url",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.open-resource",
+          "command": "sp-isc-devtools.open-resource",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.load-more",
+          "command": "sp-isc-devtools.load-more",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.roles.filter",
+          "command": "sp-isc-devtools.roles.filter",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.roles.update-filter",
+          "command": "sp-isc-devtools.roles.update-filter",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.access-profiles.filter",
+          "command": "sp-isc-devtools.access-profiles.filter",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.access-profiles.update-filter",
+          "command": "sp-isc-devtools.access-profiles.update-filter",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.remove-resource",
+          "command": "sp-isc-devtools.remove-resource",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.aggregate-source-disable-optimization",
+          "command": "sp-isc-devtools.aggregate-source-disable-optimization",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.aggregate-entitlements",
+          "command": "sp-isc-devtools.aggregate-entitlements",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.test-source",
+          "command": "sp-isc-devtools.test-source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.peek-source",
+          "command": "sp-isc-devtools.peek-source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.ping-source",
+          "command": "sp-isc-devtools.ping-source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.enable-logging",
+          "command": "sp-isc-devtools.enable-logging",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.clone-source",
+          "command": "sp-isc-devtools.clone-source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.reset-source",
+          "command": "sp-isc-devtools.reset-source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.reset-source-accounts",
+          "command": "sp-isc-devtools.reset-source-accounts",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.reset-source-entitlements",
+          "command": "sp-isc-devtools.reset-source-entitlements",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.accounts.view",
+          "command": "sp-isc-devtools.source.import.accounts.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.accounts.disable-optimization.view",
+          "command": "sp-isc-devtools.source.import.accounts.disable-optimization.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.entitlements.view",
+          "command": "sp-isc-devtools.source.import.entitlements.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.uncorrelated-accounts.view",
+          "command": "sp-isc-devtools.source.import.uncorrelated-accounts.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.entitlement-details.view",
+          "command": "sp-isc-devtools.source.import.entitlement-details.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.export.accounts.view",
+          "command": "sp-isc-devtools.source.export.accounts.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.export.uncorrelated-accounts.view",
+          "command": "sp-isc-devtools.source.export.uncorrelated-accounts.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.export.entitlement-details.view",
+          "command": "sp-isc-devtools.source.export.entitlement-details.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-transform",
+          "command": "sp-isc-devtools.new-transform",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.clone",
+          "command": "sp-isc-devtools.transform.clone",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-provisioning-policy",
+          "command": "sp-isc-devtools.new-provisioning-policy",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-schema",
+          "command": "sp-isc-devtools.new-schema",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.enable",
+          "command": "sp-isc-devtools.workflow.enable",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.disable",
+          "command": "sp-isc-devtools.workflow.disable",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.view-execution-history",
+          "command": "sp-isc-devtools.workflow.view-execution-history",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.export",
+          "command": "sp-isc-devtools.workflow.export",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.import",
+          "command": "sp-isc-devtools.workflow.import",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.import.view-icon",
+          "command": "sp-isc-devtools.workflow.import.view-icon",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.evaluate",
+          "command": "sp-isc-devtools.transform.evaluate",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.evaluate.cloud",
+          "command": "sp-isc-devtools.transform.evaluate.cloud",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.evaluate.cloud.editor",
+          "command": "sp-isc-devtools.transform.evaluate.cloud.editor",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identity-profile.refresh",
+          "command": "sp-isc-devtools.identity-profile.refresh",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identity-profiles.sort.name",
+          "command": "sp-isc-devtools.identity-profiles.sort.name",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identity-profiles.sort.priority",
+          "command": "sp-isc-devtools.identity-profiles.sort.priority",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-access-profile.view",
+          "command": "sp-isc-devtools.new-access-profile.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-access-profile.view-icon",
+          "command": "sp-isc-devtools.new-access-profile.view-icon",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-role.view",
+          "command": "sp-isc-devtools.new-role.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-role.view-icon",
+          "command": "sp-isc-devtools.new-role.view-icon",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.access-profiles.view",
+          "command": "sp-isc-devtools.csv.export.access-profiles.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.access-profiles-icon.view",
+          "command": "sp-isc-devtools.csv.export.access-profiles-icon.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.access-profiles.view",
+          "command": "sp-isc-devtools.csv.import.access-profiles.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.access-profiles-icon.view",
+          "command": "sp-isc-devtools.csv.import.access-profiles-icon.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.access-profiles.explorer",
+          "command": "sp-isc-devtools.csv.import.access-profiles.explorer",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.roles.view",
+          "command": "sp-isc-devtools.csv.export.roles.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.dimensions.view",
+          "command": "sp-isc-devtools.csv.export.dimensions.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.dimensions.view",
+          "command": "sp-isc-devtools.csv.import.dimensions.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.roles-icon.view",
+          "command": "sp-isc-devtools.csv.export.roles-icon.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.roles.view",
+          "command": "sp-isc-devtools.csv.import.roles.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.roles-icon.view",
+          "command": "sp-isc-devtools.csv.import.roles-icon.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.roles.explorer",
+          "command": "sp-isc-devtools.csv.import.roles.explorer",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.export.view",
+          "command": "sp-isc-devtools.forms.export.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.form.export.view",
+          "command": "sp-isc-devtools.form.export.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.export.icon-view",
+          "command": "sp-isc-devtools.forms.export.icon-view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.import.view",
+          "command": "sp-isc-devtools.forms.import.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.import.icon-view",
+          "command": "sp-isc-devtools.forms.import.icon-view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-attribute-search.view",
+          "command": "sp-isc-devtools.new-attribute-search.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-identity-attribute.view",
+          "command": "sp-isc-devtools.new-identity-attribute.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.search",
+          "command": "sp-isc-devtools.identities.search",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.icon-search",
+          "command": "sp-isc-devtools.identities.icon-search",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.delete",
+          "command": "sp-isc-devtools.identities.delete",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.att-sync",
+          "command": "sp-isc-devtools.identities.att-sync",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.process",
+          "command": "sp-isc-devtools.identities.process",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.connector-rule.export-script.view",
+          "command": "sp-isc-devtools.connector-rule.export-script.view",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.connector-rule.edit",
+          "command": "sp-isc-devtools.connector-rule.edit",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.filter.source",
+          "command": "sp-isc-devtools.applications.filter.source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.update-filter.source",
+          "command": "sp-isc-devtools.applications.update-filter.source",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.filter.name",
+          "command": "sp-isc-devtools.applications.filter.name",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.remove.access-profile",
+          "command": "sp-isc-devtools.applications.remove.access-profile",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.add.access-profile",
+          "command": "sp-isc-devtools.applications.add.access-profile",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.new",
+          "command": "sp-isc-devtools.applications.new",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.new.view-icon",
+          "command": "sp-isc-devtools.applications.new.view-icon",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.panel",
+          "command": "sp-isc-devtools.campaigns.panel",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.export.report",
+          "command": "sp-isc-devtools.campaigns.export.report",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reassign.owners",
+          "command": "sp-isc-devtools.campaigns.reassign.owners",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reassign.custom",
+          "command": "sp-isc-devtools.campaigns.reassign.custom",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reminder.configure",
+          "command": "sp-isc-devtools.campaigns.reminder.configure",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reminder.send",
+          "command": "sp-isc-devtools.campaigns.reminder.send",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.escalate",
+          "command": "sp-isc-devtools.campaigns.escalate",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.filter.name",
+          "command": "sp-isc-devtools.campaigns.filter.name",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.filter.status",
+          "command": "sp-isc-devtools.campaigns.filter.status",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.folder.rename",
+          "command": "sp-isc-devtools.folder.rename",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.folder.remove",
+          "command": "sp-isc-devtools.folder.remove",
           "when": "never"
         },
         {
-          "command": "vscode-sailpoint-identitynow.service-desk-integrations.edit.status-check-configuration",
+          "command": "sp-isc-devtools.service-desk-integrations.edit.status-check-configuration",
           "when": "never"
         }
       ],
       "view/title": [
         {
-          "command": "vscode-sailpoint-identitynow.folder.add-root",
-          "when": "view == vscode-sailpoint-identitynow.view",
+          "command": "sp-isc-devtools.folder.add-root",
+          "when": "view == sp-isc-devtools.view",
           "group": "navigation"
         },
         {
-          "command": "vscode-sailpoint-identitynow.add-tenant",
-          "when": "view == vscode-sailpoint-identitynow.view",
+          "command": "sp-isc-devtools.add-tenant",
+          "when": "view == sp-isc-devtools.view",
           "group": "navigation"
         },
         {
-          "command": "vscode-sailpoint-identitynow.refresh-forced",
-          "when": "view == vscode-sailpoint-identitynow.view",
+          "command": "sp-isc-devtools.refresh-forced",
+          "when": "view == sp-isc-devtools.view",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "vscode-sailpoint-identitynow.open-url",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /(tenantReadOnly|tenantWritable|.*source|disabledWorkflow|identity-profile|lifecycle-state|role|roleDimensional|dimension|access-profile|service-desk-integration|form-definition|source-app|campaign|identity)$/",
+          "command": "sp-isc-devtools.open-url",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /(tenantReadOnly|tenantWritable|.*source|disabledWorkflow|identity-profile|lifecycle-state|role|roleDimensional|dimension|access-profile|service-desk-integration|form-definition|source-app|campaign|identity)$/",
           "group": "_@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.open-resource",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /(transform|Workflow|source|schema|provisioning-policy|role|roleDimensional|dimension|access-profile|lifecycle-state|identity-profile|connector-rule|service-desk-integration|form-definition|identities|source-app|campaign)$/",
+          "command": "sp-isc-devtools.open-resource",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /(transform|Workflow|source|schema|provisioning-policy|role|roleDimensional|dimension|access-profile|lifecycle-state|identity-profile|connector-rule|service-desk-integration|form-definition|identities|source-app|campaign)$/",
           "group": "_@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.export-node-config.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^(.*source|identity-profile|connector-rule|transform|service-desk-integration)$/i",
+          "command": "sp-isc-devtools.export-node-config.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^(.*source|identity-profile|connector-rule|transform|service-desk-integration)$/i",
           "group": "zzspconfig"
         },
         {
-          "command": "vscode-sailpoint-identitynow.remove-resource",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /(transform|Workflow|schema|provisioning-policy|role|roleDimensional|dimension|access-profile|lifecycle-state|identity-profile|connector-rule|service-desk-integration|form-definition|search-attribute|identity-attribute|source-app)$/",
+          "command": "sp-isc-devtools.remove-resource",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /(transform|Workflow|schema|provisioning-policy|role|roleDimensional|dimension|access-profile|lifecycle-state|identity-profile|connector-rule|service-desk-integration|form-definition|search-attribute|identity-attribute|source-app)$/",
           "group": "zzzremove@100"
         },
         {
-          "command": "vscode-sailpoint-identitynow.refresh-forced",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /sources|transforms|provisioning-policies|roles|roleDimensional|access-profiles|service-desk-integrations|identity-profiles|schemas|workflows|connector-rules|form-definitions|search-attributes|identity-attributes|source-apps|source-app|campaigns/",
+          "command": "sp-isc-devtools.refresh-forced",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /sources|transforms|provisioning-policies|roles|roleDimensional|access-profiles|service-desk-integrations|identity-profiles|schemas|workflows|connector-rules|form-definitions|search-attributes|identity-attributes|source-apps|source-app|campaigns/",
           "group": "inline@50"
         },
         {
-          "command": "vscode-sailpoint-identitynow.remove-tenant",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/"
+          "command": "sp-isc-devtools.remove-tenant",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.set-readonly",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == tenantWritable",
+          "command": "sp-isc-devtools.tenant.set-readonly",
+          "when": "view == sp-isc-devtools.view && viewItem == tenantWritable",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.set-writable",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == tenantReadOnly",
+          "command": "sp-isc-devtools.tenant.set-writable",
+          "when": "view == sp-isc-devtools.view && viewItem == tenantReadOnly",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.rename-tenant",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/"
+          "command": "sp-isc-devtools.rename-tenant",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.public-identities-config",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/"
+          "command": "sp-isc-devtools.tenant.edit.public-identities-config",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.access-request-config",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/"
+          "command": "sp-isc-devtools.tenant.edit.access-request-config",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.org-config",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/"
+          "command": "sp-isc-devtools.tenant.edit.org-config",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.edit.password-org-config",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/",
+          "command": "sp-isc-devtools.tenant.edit.password-org-config",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/",
           "group": "password"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.generate-digit-token",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/",
+          "command": "sp-isc-devtools.tenant.generate-digit-token",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/",
           "group": "password"
         },
         {
-          "command": "vscode-sailpoint-identitynow.tenant.email-settings",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/"
+          "command": "sp-isc-devtools.tenant.email-settings",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.export-config.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/",
+          "command": "sp-isc-devtools.export-config.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/",
           "group": "config"
         },
         {
-          "command": "vscode-sailpoint-identitynow.upload-config.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/",
+          "command": "sp-isc-devtools.upload-config.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/",
           "group": "config"
         },
         {
-          "command": "vscode-sailpoint-identitynow.import-config.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^tenant/",
+          "command": "sp-isc-devtools.import-config.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/",
           "group": "config"
         },
         {
-          "command": "vscode-sailpoint-identitynow.aggregate-source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/ && viewItem != DelimitedFilesource",
+          "command": "sp-isc-devtools.aggregate-source",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/ && viewItem != DelimitedFilesource",
           "group": "aggregate@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.aggregate-source-disable-optimization",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/ && viewItem != DelimitedFilesource",
+          "command": "sp-isc-devtools.aggregate-source-disable-optimization",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/ && viewItem != DelimitedFilesource",
           "group": "aggregate@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.aggregate-entitlements",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/ && viewItem != DelimitedFilesource",
+          "command": "sp-isc-devtools.aggregate-entitlements",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/ && viewItem != DelimitedFilesource",
           "group": "aggregate@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.test-source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^((?!DelimitedFilesource).)*$/ && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.test-source",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^((?!DelimitedFilesource).)*$/ && viewItem =~ /source$/",
           "group": "test"
         },
         {
-          "command": "vscode-sailpoint-identitynow.peek-source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^((?!DelimitedFilesource).)*$/ && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.peek-source",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^((?!DelimitedFilesource).)*$/ && viewItem =~ /source$/",
           "group": "test"
         },
         {
-          "command": "vscode-sailpoint-identitynow.ping-source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^((?!DelimitedFilesource).)*$/ && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.ping-source",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^((?!DelimitedFilesource).)*$/ && viewItem =~ /source$/",
           "group": "test"
         },
         {
-          "command": "vscode-sailpoint-identitynow.enable-logging",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^(service-desk-integration|ACF2-Fullsource|ADAM-Directsource|AIX-Directsource|AWSsource|AWSSecretsManagersource|ActiveDirectory-Directsource|Atlassian-DataCentersource|AtlassianSuite-Cloudsource|AzureActiveDirectorysource|BMCRemedysource|BeyondTrustPasswordSafe-Cloudsource|BeyondTrustPasswordSafe-Cloudsource|BeyondTrustPasswordSafe-Onpremsource|BeyondTrustPasswordSafe-Onpremsource|Boxsource|Coupasource|CyberArkConjurCloudsource|CyberArkPAMSelfHostedsource|CyberArkPrivilegeCloudSharedServicessource|DelineaSecretServerCloudsource|DelineaSecretServerOn-Premisesource|Dropboxsource|Duosource|Dynamics365BusinessCentralOnlinesource|Dynamics365BusinessCentralOnlinesource|Dynamics365CRMsource|Dynamics365CRMsource|Dynamics365FOsource|Epicsource|GSuitesource|Genericsource|GoToMeetingsource|GuidewireBillingCentersource|GuidewireClaimCentersource|GuidewireContactManagersource|GuidewirePolicyCentersource|HashiCorpVault(Cloud)source|HashiCorpVault(On-Premise)source|IBMDB2source|IBMLotusDomino-Directsource|IBMTivoliAccessManagersource|IBMTivoliDS-Directsource|IBMisource|IvantiCherwellsource|JDBCsource|JackHenrysource|LDAPsource|Linux-Directsource|MEDITECHsource|MicrosoftAzureSQLDatabasesource|MicrosoftSQLServer-Directsource|MicrosoftSharePointOnlinesource|MicrosoftSharePointServersource|MongoDBCloud-Atlassource|MongoDBCloud-Databasesource|Multi-Host-MicrosoftSQLServersource|Multi-Host-OracleDatabasesource|Non-Employeesource|NovelleDirectory-Directsource|Oktasource|OpenLDAP-Directsource|OracleDatabase-Directsource|OracleE-Businesssource|OracleEPMCloud-ARsource|OracleEPMCloud-FCCSsource|OracleEPMCloud-NRsource|OracleEPMCloud-Planningsource|OracleERPCloudsource|OracleFusionHCMAccountssource|OracleHCMCloudsource|OracleHRMSsource|OracleInternetDirectory-Directsource|OracleNetSuitesource|PeopleSoft-Directsource|PeopleSoftHCMDatabasesource|RACF-Fullsource|RACFLDAPsource|RSAAuthenticationManager-Directsource|RemedyForcesource|SAML-JITsource|SAP-Directsource|SAPAnalyticsCloudsource|SAPConcursource|SAPFieldglasssource|SAPGRCsource|SAPHANADatabasesource|SAPHR\\/HCMsource|SAPPortal-UMWebServicesource|SAPS\\/4HANACloudsource|SCIM1.1source|SCIM2.0source|SQLLoadersource|Salesforcesource|ServiceNowsource|ServiceNowServiceDesksource|Siebelsource|Slacksource|Snowflakesource|Solaris-Directsource|SuccessFactorssource|SuccessFactorsLMSsource|Sybase-Directsource|TopSecretLDAPsource|TopSecret-Fullsource|UKGProCoreHCMsource|WebServicessource|Webexsource|WindowsLocal-Directsource|Workdaysource|WorkdayAccountssource|Zendesksource|ZendeskSDIMsource|Zoomsource)$/",
+          "command": "sp-isc-devtools.enable-logging",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^(service-desk-integration|ACF2-Fullsource|ADAM-Directsource|AIX-Directsource|AWSsource|AWSSecretsManagersource|ActiveDirectory-Directsource|Atlassian-DataCentersource|AtlassianSuite-Cloudsource|AzureActiveDirectorysource|BMCRemedysource|BeyondTrustPasswordSafe-Cloudsource|BeyondTrustPasswordSafe-Cloudsource|BeyondTrustPasswordSafe-Onpremsource|BeyondTrustPasswordSafe-Onpremsource|Boxsource|Coupasource|CyberArkConjurCloudsource|CyberArkPAMSelfHostedsource|CyberArkPrivilegeCloudSharedServicessource|DelineaSecretServerCloudsource|DelineaSecretServerOn-Premisesource|Dropboxsource|Duosource|Dynamics365BusinessCentralOnlinesource|Dynamics365BusinessCentralOnlinesource|Dynamics365CRMsource|Dynamics365CRMsource|Dynamics365FOsource|Epicsource|GSuitesource|Genericsource|GoToMeetingsource|GuidewireBillingCentersource|GuidewireClaimCentersource|GuidewireContactManagersource|GuidewirePolicyCentersource|HashiCorpVault(Cloud)source|HashiCorpVault(On-Premise)source|IBMDB2source|IBMLotusDomino-Directsource|IBMTivoliAccessManagersource|IBMTivoliDS-Directsource|IBMisource|IvantiCherwellsource|JDBCsource|JackHenrysource|LDAPsource|Linux-Directsource|MEDITECHsource|MicrosoftAzureSQLDatabasesource|MicrosoftSQLServer-Directsource|MicrosoftSharePointOnlinesource|MicrosoftSharePointServersource|MongoDBCloud-Atlassource|MongoDBCloud-Databasesource|Multi-Host-MicrosoftSQLServersource|Multi-Host-OracleDatabasesource|Non-Employeesource|NovelleDirectory-Directsource|Oktasource|OpenLDAP-Directsource|OracleDatabase-Directsource|OracleE-Businesssource|OracleEPMCloud-ARsource|OracleEPMCloud-FCCSsource|OracleEPMCloud-NRsource|OracleEPMCloud-Planningsource|OracleERPCloudsource|OracleFusionHCMAccountssource|OracleHCMCloudsource|OracleHRMSsource|OracleInternetDirectory-Directsource|OracleNetSuitesource|PeopleSoft-Directsource|PeopleSoftHCMDatabasesource|RACF-Fullsource|RACFLDAPsource|RSAAuthenticationManager-Directsource|RemedyForcesource|SAML-JITsource|SAP-Directsource|SAPAnalyticsCloudsource|SAPConcursource|SAPFieldglasssource|SAPGRCsource|SAPHANADatabasesource|SAPHR\\/HCMsource|SAPPortal-UMWebServicesource|SAPS\\/4HANACloudsource|SCIM1.1source|SCIM2.0source|SQLLoadersource|Salesforcesource|ServiceNowsource|ServiceNowServiceDesksource|Siebelsource|Slacksource|Snowflakesource|Solaris-Directsource|SuccessFactorssource|SuccessFactorsLMSsource|Sybase-Directsource|TopSecretLDAPsource|TopSecret-Fullsource|UKGProCoreHCMsource|WebServicessource|Webexsource|WindowsLocal-Directsource|Workdaysource|WorkdayAccountssource|Zendesksource|ZendeskSDIMsource|Zoomsource)$/",
           "group": "logging"
         },
         {
-          "command": "vscode-sailpoint-identitynow.clone-source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.clone-source",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "clone"
         },
         {
-          "command": "vscode-sailpoint-identitynow.reset-source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.reset-source",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "reset"
         },
         {
-          "command": "vscode-sailpoint-identitynow.reset-source-accounts",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.reset-source-accounts",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "reset"
         },
         {
-          "command": "vscode-sailpoint-identitynow.reset-source-entitlements",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.reset-source-entitlements",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "reset"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.accounts.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == DelimitedFilesource",
+          "command": "sp-isc-devtools.source.import.accounts.view",
+          "when": "view == sp-isc-devtools.view && viewItem == DelimitedFilesource",
           "group": "import@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.accounts.disable-optimization.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == DelimitedFilesource",
+          "command": "sp-isc-devtools.source.import.accounts.disable-optimization.view",
+          "when": "view == sp-isc-devtools.view && viewItem == DelimitedFilesource",
           "group": "import@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.entitlements.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == DelimitedFilesource",
+          "command": "sp-isc-devtools.source.import.entitlements.view",
+          "when": "view == sp-isc-devtools.view && viewItem == DelimitedFilesource",
           "group": "import@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.uncorrelated-accounts.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.source.import.uncorrelated-accounts.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "import@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.import.entitlement-details.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.source.import.entitlement-details.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "import@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.export.accounts.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.source.export.accounts.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "report@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.export.uncorrelated-accounts.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.source.export.uncorrelated-accounts.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "report@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.source.export.entitlement-details.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /source$/",
+          "command": "sp-isc-devtools.source.export.entitlement-details.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /source$/",
           "group": "report@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-transform",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == transforms",
+          "command": "sp-isc-devtools.new-transform",
+          "when": "view == sp-isc-devtools.view && viewItem == transforms",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-provisioning-policy",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == provisioning-policies",
+          "command": "sp-isc-devtools.new-provisioning-policy",
+          "when": "view == sp-isc-devtools.view && viewItem == provisioning-policies",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-schema",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == schemas",
+          "command": "sp-isc-devtools.new-schema",
+          "when": "view == sp-isc-devtools.view && viewItem == schemas",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.import.view-icon",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == workflows",
+          "command": "sp-isc-devtools.workflow.import.view-icon",
+          "when": "view == sp-isc-devtools.view && viewItem == workflows",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.import",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == workflows"
+          "command": "sp-isc-devtools.workflow.import",
+          "when": "view == sp-isc-devtools.view && viewItem == workflows"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.enable",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == disabledWorkflow",
+          "command": "sp-isc-devtools.workflow.enable",
+          "when": "view == sp-isc-devtools.view && viewItem == disabledWorkflow",
           "group": "workflow"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.disable",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == enabledWorkflow",
+          "command": "sp-isc-devtools.workflow.disable",
+          "when": "view == sp-isc-devtools.view && viewItem == enabledWorkflow",
           "group": "workflow"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.view-execution-history",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /workflow$/i",
+          "command": "sp-isc-devtools.workflow.view-execution-history",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /workflow$/i",
           "group": "workflow"
         },
         {
-          "command": "vscode-sailpoint-identitynow.workflow.export",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /workflow$/i",
+          "command": "sp-isc-devtools.workflow.export",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /workflow$/i",
           "group": "workflow"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.evaluate",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == transform",
+          "command": "sp-isc-devtools.transform.evaluate",
+          "when": "view == sp-isc-devtools.view && viewItem == transform",
           "group": "transform"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.clone",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == transform",
+          "command": "sp-isc-devtools.transform.clone",
+          "when": "view == sp-isc-devtools.view && viewItem == transform",
           "group": "transform"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.evaluate.cloud",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == transform",
+          "command": "sp-isc-devtools.transform.evaluate.cloud",
+          "when": "view == sp-isc-devtools.view && viewItem == transform",
           "group": "transform"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-connector-rule",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == connector-rules",
+          "command": "sp-isc-devtools.new-connector-rule",
+          "when": "view == sp-isc-devtools.view && viewItem == connector-rules",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.connector-rule.export-script.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == connector-rule"
+          "command": "sp-isc-devtools.connector-rule.export-script.view",
+          "when": "view == sp-isc-devtools.view && viewItem == connector-rule"
         },
         {
-          "command": "vscode-sailpoint-identitynow.connector-rule.edit",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == connector-rule"
+          "command": "sp-isc-devtools.connector-rule.edit",
+          "when": "view == sp-isc-devtools.view && viewItem == connector-rule"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identity-profile.refresh",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == identity-profile",
+          "command": "sp-isc-devtools.identity-profile.refresh",
+          "when": "view == sp-isc-devtools.view && viewItem == identity-profile",
           "group": "identity-profile"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identity-profiles.sort.name",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == identity-profiles",
+          "command": "sp-isc-devtools.identity-profiles.sort.name",
+          "when": "view == sp-isc-devtools.view && viewItem == identity-profiles",
           "group": "inline@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identity-profiles.sort.priority",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == identity-profiles",
+          "command": "sp-isc-devtools.identity-profiles.sort.priority",
+          "when": "view == sp-isc-devtools.view && viewItem == identity-profiles",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.roles.filter",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == rolesUnfiltered",
+          "command": "sp-isc-devtools.roles.filter",
+          "when": "view == sp-isc-devtools.view && viewItem == rolesUnfiltered",
           "group": "inline@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.roles.update-filter",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == rolesFiltered",
+          "command": "sp-isc-devtools.roles.update-filter",
+          "when": "view == sp-isc-devtools.view && viewItem == rolesFiltered",
           "group": "inline@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.access-profiles.filter",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == access-profilesUnfiltered",
+          "command": "sp-isc-devtools.access-profiles.filter",
+          "when": "view == sp-isc-devtools.view && viewItem == access-profilesUnfiltered",
           "group": "inline@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.access-profiles.update-filter",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == access-profilesFiltered",
+          "command": "sp-isc-devtools.access-profiles.update-filter",
+          "when": "view == sp-isc-devtools.view && viewItem == access-profilesFiltered",
           "group": "inline@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-access-profile.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^access-profiles/"
+          "command": "sp-isc-devtools.new-access-profile.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^access-profiles/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-access-profile.view-icon",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^access-profiles/",
+          "command": "sp-isc-devtools.new-access-profile.view-icon",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^access-profiles/",
           "group": "inline"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-role.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^roles/"
+          "command": "sp-isc-devtools.new-role.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^roles/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-role.view-icon",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^roles/",
+          "command": "sp-isc-devtools.new-role.view-icon",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^roles/",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.access-profiles.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^access-profiles/"
+          "command": "sp-isc-devtools.csv.export.access-profiles.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^access-profiles/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.access-profiles-icon.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^access-profiles/",
+          "command": "sp-isc-devtools.csv.export.access-profiles-icon.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^access-profiles/",
           "group": "inline@3"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.access-profiles.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^access-profiles/"
+          "command": "sp-isc-devtools.csv.import.access-profiles.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^access-profiles/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.access-profiles-icon.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^access-profiles/",
+          "command": "sp-isc-devtools.csv.import.access-profiles-icon.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^access-profiles/",
           "group": "inline@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.roles.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^roles/"
+          "command": "sp-isc-devtools.csv.export.roles.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^roles/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.dimensions.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /(^roles|roleDimensional)/",
+          "command": "sp-isc-devtools.csv.export.dimensions.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /(^roles|roleDimensional)/",
           "group": "dimension"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.dimensions.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^roles/",
+          "command": "sp-isc-devtools.csv.import.dimensions.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^roles/",
           "group": "dimension"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.export.roles-icon.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^roles/",
+          "command": "sp-isc-devtools.csv.export.roles-icon.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^roles/",
           "group": "inline@3"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.roles.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^roles/"
+          "command": "sp-isc-devtools.csv.import.roles.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^roles/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.csv.import.roles-icon.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^roles/",
+          "command": "sp-isc-devtools.csv.import.roles-icon.view",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^roles/",
           "group": "inline@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.export.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == form-definitions"
+          "command": "sp-isc-devtools.forms.export.view",
+          "when": "view == sp-isc-devtools.view && viewItem == form-definitions"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.export.icon-view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == form-definitions",
+          "command": "sp-isc-devtools.forms.export.icon-view",
+          "when": "view == sp-isc-devtools.view && viewItem == form-definitions",
           "group": "inline@3"
         },
         {
-          "command": "vscode-sailpoint-identitynow.form.export.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == form-definition"
+          "command": "sp-isc-devtools.form.export.view",
+          "when": "view == sp-isc-devtools.view && viewItem == form-definition"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.import.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == form-definitions"
+          "command": "sp-isc-devtools.forms.import.view",
+          "when": "view == sp-isc-devtools.view && viewItem == form-definitions"
         },
         {
-          "command": "vscode-sailpoint-identitynow.forms.import.icon-view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == form-definitions",
+          "command": "sp-isc-devtools.forms.import.icon-view",
+          "when": "view == sp-isc-devtools.view && viewItem == form-definitions",
           "group": "inline@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-attribute-search.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == search-attributes",
+          "command": "sp-isc-devtools.new-attribute-search.view",
+          "when": "view == sp-isc-devtools.view && viewItem == search-attributes",
           "group": "inline@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.new-identity-attribute.view",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == identity-attributes",
+          "command": "sp-isc-devtools.new-identity-attribute.view",
+          "when": "view == sp-isc-devtools.view && viewItem == identity-attributes",
           "group": "inline@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.search",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^identities/"
+          "command": "sp-isc-devtools.identities.search",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^identities/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.icon-search",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^identities/",
+          "command": "sp-isc-devtools.identities.icon-search",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^identities/",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.delete",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^identity$/"
+          "command": "sp-isc-devtools.identities.delete",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^identity$/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.att-sync",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^identity$/"
+          "command": "sp-isc-devtools.identities.att-sync",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^identity$/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.identities.process",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^identity$/"
+          "command": "sp-isc-devtools.identities.process",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^identity$/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.filter.source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == source-appsUnfiltered",
+          "command": "sp-isc-devtools.applications.filter.source",
+          "when": "view == sp-isc-devtools.view && viewItem == source-appsUnfiltered",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.update-filter.source",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == source-appsFiltered",
+          "command": "sp-isc-devtools.applications.update-filter.source",
+          "when": "view == sp-isc-devtools.view && viewItem == source-appsFiltered",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.filter.name",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^source-apps/",
+          "command": "sp-isc-devtools.applications.filter.name",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^source-apps/",
           "group": "inline@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.remove.access-profile",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == access-profile-application"
+          "command": "sp-isc-devtools.applications.remove.access-profile",
+          "when": "view == sp-isc-devtools.view && viewItem == access-profile-application"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.add.access-profile",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == source-app"
+          "command": "sp-isc-devtools.applications.add.access-profile",
+          "when": "view == sp-isc-devtools.view && viewItem == source-app"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.new",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^source-apps/"
+          "command": "sp-isc-devtools.applications.new",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^source-apps/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.applications.new.view-icon",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^source-apps/",
+          "command": "sp-isc-devtools.applications.new.view-icon",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^source-apps/",
           "group": "inline"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.panel",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^campaign$/",
+          "command": "sp-isc-devtools.campaigns.panel",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^campaign$/",
           "group": "0-campaigns@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.export.report",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/",
+          "command": "sp-isc-devtools.campaigns.export.report",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/",
           "group": "0-campaigns@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reassign.owners",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
+          "command": "sp-isc-devtools.campaigns.reassign.owners",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
           "group": "1-reviewerLogic@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reassign.custom",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
+          "command": "sp-isc-devtools.campaigns.reassign.custom",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
           "group": "1-reviewerLogic@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reminder.configure",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^campaigns/",
+          "command": "sp-isc-devtools.campaigns.reminder.configure",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^campaigns/",
           "group": "2-escalations@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.reminder.send",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
+          "command": "sp-isc-devtools.campaigns.reminder.send",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
           "group": "2-escalations@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.escalate",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
+          "command": "sp-isc-devtools.campaigns.escalate",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^(?!.*ROLE_COMPOSITIONcampaign$).*campaign$/ && viewItem =~ /^(?!COMPLETED).*campaign$/",
           "group": "2-escalations@2"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.filter.name",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^campaigns/",
+          "command": "sp-isc-devtools.campaigns.filter.name",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^campaigns/",
           "group": "inline@0"
         },
         {
-          "command": "vscode-sailpoint-identitynow.campaigns.filter.status",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem =~ /^campaigns/",
+          "command": "sp-isc-devtools.campaigns.filter.status",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^campaigns/",
           "group": "inline@1"
         },
         {
-          "command": "vscode-sailpoint-identitynow.service-desk-integrations.edit.status-check-configuration",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == service-desk-integrations"
+          "command": "sp-isc-devtools.service-desk-integrations.edit.status-check-configuration",
+          "when": "view == sp-isc-devtools.view && viewItem == service-desk-integrations"
         },
         {
-          "command": "vscode-sailpoint-identitynow.folder.remove",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == folder"
+          "command": "sp-isc-devtools.folder.remove",
+          "when": "view == sp-isc-devtools.view && viewItem == folder"
         },
         {
-          "command": "vscode-sailpoint-identitynow.folder.rename",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == folder"
+          "command": "sp-isc-devtools.folder.rename",
+          "when": "view == sp-isc-devtools.view && viewItem == folder"
         },
         {
-          "command": "vscode-sailpoint-identitynow.folder.add",
-          "when": "view == vscode-sailpoint-identitynow.view && viewItem == folder"
+          "command": "sp-isc-devtools.folder.add",
+          "when": "view == sp-isc-devtools.view && viewItem == folder"
         }
       ],
       "editor/context": [
         {
-          "command": "vscode-sailpoint-identitynow.transform.evaluate.editor",
+          "command": "sp-isc-devtools.transform.evaluate.editor",
           "when": "resourcePath =~ /transforms/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.transform.evaluate.cloud.editor",
+          "command": "sp-isc-devtools.transform.evaluate.cloud.editor",
           "when": "resourcePath =~ /transforms/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.connector-rule.upload"
+          "command": "sp-isc-devtools.connector-rule.upload"
         },
         {
-          "command": "vscode-sailpoint-identitynow.connector-rule.validate"
+          "command": "sp-isc-devtools.connector-rule.validate"
         },
         {
-          "command": "vscode-sailpoint-identitynow.connector-rule.export-script.editor",
+          "command": "sp-isc-devtools.connector-rule.export-script.editor",
           "when": "resourceScheme == idn && resourcePath =~ /.*\\/connector-rules\\/.*/"
         },
         {
-          "command": "vscode-sailpoint-identitynow.import-config.palette",
+          "command": "sp-isc-devtools.import-config.palette",
           "when": "resourcePath =~ /\\.json/"
         }
       ],
       "explorer/context": [
         {
           "when": "resourceLangId == json",
-          "command": "vscode-sailpoint-identitynow.import-config.menu",
+          "command": "sp-isc-devtools.import-config.menu",
           "group": "idn"
         },
         {
           "when": "resourceLangId == csv",
-          "command": "vscode-sailpoint-identitynow.csv.import.access-profiles.explorer",
+          "command": "sp-isc-devtools.csv.import.access-profiles.explorer",
           "group": "idn"
         },
         {
           "when": "resourceLangId == csv",
-          "command": "vscode-sailpoint-identitynow.csv.import.roles.explorer",
+          "command": "sp-isc-devtools.csv.import.roles.explorer",
           "group": "idn"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "vscode-sailpoint-identitynow.transform.evaluate.cloud.editor",
+        "command": "sp-isc-devtools.transform.evaluate.cloud.editor",
         "key": "ctrl+alt+t",
         "mac": "shift+cmd+t"
       }
@@ -1742,67 +1742,67 @@
     "configuration": {
       "title": "Identity Security Cloud",
       "properties": {
-        "vscode-sailpoint-identitynow.report.accounts.filename": {
+        "sp-isc-devtools.report.accounts.filename": {
           "type": "string",
           "default": "%x/reports/%T-%S-Accounts-%y%M%d-%h%m%s.csv"
         },
-        "vscode-sailpoint-identitynow.report.uncorrelatedAccounts.filename": {
+        "sp-isc-devtools.report.uncorrelatedAccounts.filename": {
           "type": "string",
           "default": "%x/reports/%T-%S-Uncorrelated-Accounts-%y%M%d-%h%m%s.csv"
         },
-        "vscode-sailpoint-identitynow.report.entitlements.filename": {
+        "sp-isc-devtools.report.entitlements.filename": {
           "type": "string",
           "default": "%x/reports/%T-%S-Entitlements-%y%M%d-%h%m%s.csv"
         },
-        "vscode-sailpoint-identitynow.report.accessProfiles.filename": {
+        "sp-isc-devtools.report.accessProfiles.filename": {
           "type": "string",
           "default": "%x/reports/%T-AccessProfiles-%y%M%d-%h%m%s.csv"
         },
-        "vscode-sailpoint-identitynow.report.roles.filename": {
+        "sp-isc-devtools.report.roles.filename": {
           "type": "string",
           "default": "%x/reports/%T-Roles-%y%M%d-%h%m%s.csv"
         },
-        "vscode-sailpoint-identitynow.report.dimensions.filename": {
+        "sp-isc-devtools.report.dimensions.filename": {
           "type": "string",
           "default": "%x/reports/%T-Dimensions-%y%M%d-%h%m%s.csv"
         },
-        "vscode-sailpoint-identitynow.report.dimensions.for.role.filename": {
+        "sp-isc-devtools.report.dimensions.for.role.filename": {
           "type": "string",
           "default": "%x/reports/%T-Dimensions-%S-%y%M%d-%h%m%s.csv"
         },
-        "vscode-sailpoint-identitynow.sP-Config.singleResource.filename": {
+        "sp-isc-devtools.sP-Config.singleResource.filename": {
           "type": "string",
           "default": "%x/exportedObjects/identitynowconfig-%t-%S-%y%M%d-%h%m%s.json"
         },
-        "vscode-sailpoint-identitynow.sP-Config.singleFile.filename": {
+        "sp-isc-devtools.sP-Config.singleFile.filename": {
           "type": "string",
           "default": "%x/exportedObjects/identitynowconfig-%t-%y%M%d-%h%m%s.json"
         },
-        "vscode-sailpoint-identitynow.sP-Config.multipleFiles.folder": {
+        "sp-isc-devtools.sP-Config.multipleFiles.folder": {
           "type": "string",
           "default": "%x/exportedObjects"
         },
-        "vscode-sailpoint-identitynow.sP-Config.multipleFiles.filename": {
+        "sp-isc-devtools.sP-Config.multipleFiles.filename": {
           "type": "string",
           "default": "%o/%S.json"
         },
-        "vscode-sailpoint-identitynow.export.forms.filename": {
+        "sp-isc-devtools.export.forms.filename": {
           "type": "string",
           "default": "%x/Forms/Forms-%t-%y%M%d-%h%m%s.json"
         },
-        "vscode-sailpoint-identitynow.export.form.filename": {
+        "sp-isc-devtools.export.form.filename": {
           "type": "string",
           "default": "%x/Forms/Form-%t-%S-%y%M%d-%h%m%s.json"
         },
-        "vscode-sailpoint-identitynow.export.workflow.filename": {
+        "sp-isc-devtools.export.workflow.filename": {
           "type": "string",
           "default": "%x/Workflows/Workflow-%t-%S-%y%M%d-%h%m%s.json"
         },
-        "vscode-sailpoint-identitynow.treeView.pagination": {
+        "sp-isc-devtools.treeView.pagination": {
           "type": "number",
           "default": 100
         },
-        "vscode-sailpoint-identitynow.report.campaigns.filename": {
+        "sp-isc-devtools.report.campaigns.filename": {
           "type": "string",
           "default": "%x/reports/%T-Campaign-%S-%y%M%d-%h%m%s.csv"
         }
@@ -1853,6 +1853,6 @@
     "lodash": "^4.17.21",
     "sailpoint-api-client": "^1.7.0",
     "tmp": "^0.2.1",
-    "vscode-sailpoint-identitynow": "file:"
+    "sp-isc-devtools": "file:"
   }
 }

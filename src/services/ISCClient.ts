@@ -27,8 +27,45 @@ const FormData = require('form-data');
 // All header names are lower cased.
 const CONTENT_TYPE_HEADER = "Content-Type";
 export const USER_AGENT_HEADER = "User-Agent";
-const EXTENSION_VERSION = vscode.extensions.getExtension("yannick-beot-sp.vscode-sailpoint-identitynow").packageJSON.version
-export const USER_AGENT = `VSCode/${EXTENSION_VERSION}/${vscode.version} (${os.type()} ${os.arch()} ${os.release()})`
+// Try multiple extension IDs for compatibility with VS Code, Cursor, and other forks
+function getExtensionVersion(): string {
+	try {
+		const extensionIds = [
+			"sp-isc-devtools.sp-isc-devtools",
+			"sp-isc-devtools"
+		];
+		for (const id of extensionIds) {
+			const ext = vscode.extensions.getExtension(id);
+			if (ext) {
+				return ext.packageJSON.version;
+			}
+		}
+		// Fallback: try to find by partial match
+		const allExtensions = vscode.extensions.all;
+		const sailpointExt = allExtensions.find(ext => 
+			ext.id.toLowerCase().includes("sailpoint") || 
+			ext.id.toLowerCase().includes("identitynow")
+		);
+		if (sailpointExt) {
+			return sailpointExt.packageJSON.version;
+		}
+	} catch (e) {
+		// Ignore errors during extension lookup
+	}
+	return "1.3.23"; // Fallback to package.json version
+}
+
+// Lazy-evaluated user agent to avoid issues during module loading
+let _userAgent: string | null = null;
+export function getUserAgent(): string {
+	if (_userAgent === null) {
+		const version = getExtensionVersion();
+		_userAgent = `VSCode/${version}/${vscode.version} (${os.type()} ${os.arch()} ${os.release()})`;
+	}
+	return _userAgent;
+}
+// Keep for backwards compatibility but make it a getter
+export const USER_AGENT = `VSCode/1.3.23/${vscode.version} (${os.type()} ${os.arch()} ${os.release()})`
 
 export const TOTAL_COUNT_HEADER = "x-total-count";
 
@@ -434,7 +471,6 @@ export class ISCClient {
 	/////////////////////
 	//#region Configuration Hub
 	/////////////////////
-	x
 
 	public async uploadBackup(data: string, fileName: string, name: string): Promise<BackupResponseV2024> {
 		console.log("> uploadBackup");

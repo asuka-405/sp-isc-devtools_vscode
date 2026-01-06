@@ -98,7 +98,7 @@ import { EditOrgConfigCommand } from './commands/tenant/EditOrgConfigCommand';
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-	console.log('Congratulations, your extension "vscode-sailpoint-identitynow" is now active!');
+	console.log('Congratulations, your extension "sp-isc-devtools" is now active!');
 
 	const tenantService = new TenantService(context.globalState, context.secrets);
 

@@ -1,4 +1,4 @@
-export const SECTION_CONF = "vscode-sailpoint-identitynow";
+export const SECTION_CONF = "sp-isc-devtools";
 
 export const ACCOUNT_REPORT_FILENAME_CONF = "report.accounts.filename";
 export const UNCORRELATED_ACCOUNT_REPORT_FILENAME_CONF = "report.uncorrelatedAccounts.filename";

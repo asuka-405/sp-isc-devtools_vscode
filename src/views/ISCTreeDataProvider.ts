@@ -4,7 +4,7 @@ import { TenantService } from '../services/TenantService';
 import { convertToBaseTreeItem } from './utils';
 
 
-const DROP_MIME_TYPE = 'application/vnd.code.tree.vscode-sailpoint-identitynow.view';
+const DROP_MIME_TYPE = 'application/vnd.code.tree.sp-isc-devtools.view';
 
 
 

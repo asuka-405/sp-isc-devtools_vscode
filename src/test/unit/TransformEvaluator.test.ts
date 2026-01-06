@@ -5,7 +5,7 @@ import { normalizeNames } from '../../services/transforms';
 suite('Transforms Test Suite', () => {
 	describe('normalizeNames', () => {
 		const tests = [
-			{ args: 'mac-donalds', expected: 'Mac-donalds' }, // cf. https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/73
+			{ args: 'mac-donalds', expected: 'Mac-donalds' }, // cf. https://github.com/asuka-405/sp-isc-devtools/issues/73
 			{ args: 'jean-baptiste le goff', expected: 'Jean-Baptiste Le Goff' },
 			{ args: "o'sullivan", expected: "O'Sullivan" },
 			{ args: 'mac donalds', expected: 'Mac Donalds' },
