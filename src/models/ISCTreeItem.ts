@@ -325,12 +325,32 @@ export class SourceTreeItem extends ISCResourceTreeItem {
 		this.contextValue = type.replaceAll(" ", "") + "source";
 	}
 
+	// Override command to open source config panel by default
+	command = {
+		title: "Open Source Configuration",
+		command: commands.OPEN_SOURCE_CONFIG_PANEL,
+		arguments: [this],
+	};
+
 	getChildren(): Promise<BaseTreeItem[]> {
 		const results: BaseTreeItem[] = [];
+		// Schemas and Provisioning Policies
 		results.push(new SchemasTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName, this.uri));
 		results.push(
 			new ProvisioningPoliciesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName, this.uri)
 		);
+		// Connector Rules for this source
+		results.push(new SourceConnectorRulesTreeItem(
+			this.tenantId, this.tenantName, this.tenantDisplayName, this.id!, this.label as string
+		));
+		// Access Profiles for this source
+		results.push(new SourceAccessProfilesTreeItem(
+			this.tenantId, this.tenantName, this.tenantDisplayName, this.id!, this.label as string
+		));
+		// Roles that provision to this source
+		results.push(new SourceRolesTreeItem(
+			this.tenantId, this.tenantName, this.tenantDisplayName, this.id!, this.label as string
+		));
 		return new Promise((resolve) => resolve(results));
 	}
 
@@ -528,6 +548,248 @@ export class ProvisioningPolicyTreeItem extends ISCResourceTreeItem {
 }
 
 /**
+ * Connector Rules under a Source - shows rules that reference this source
+ */
+export class SourceConnectorRulesTreeItem extends FolderTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+		private readonly sourceId: string,
+		private readonly sourceName: string
+	) {
+		super("Connector Rules", "source-connector-rules", tenantId, tenantName, tenantDisplayName);
+	}
+
+	iconPath = new vscode.ThemeIcon("file-code");
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		const client = new ISCClient(this.tenantId, this.tenantName);
+		
+		// Get the source to find referenced rules
+		const source = await client.getSourceById(this.sourceId);
+		const ruleNames: string[] = [];
+		
+		// Collect rule names from various source fields
+		if (source.beforeProvisioningRule?.name) ruleNames.push(source.beforeProvisioningRule.name);
+		if (source.accountCorrelationRule?.name) ruleNames.push(source.accountCorrelationRule.name);
+		if (source.managerCorrelationRule?.name) ruleNames.push(source.managerCorrelationRule.name);
+		
+		// Check connector attributes for rules
+		const connAttrs = source.connectorAttributes as any;
+		if (connAttrs) {
+			const ruleFields = ['beforeProvisioningRule', 'afterProvisioningRule', 'beforeRule', 'afterRule'];
+			for (const field of ruleFields) {
+				if (connAttrs[field]) ruleNames.push(connAttrs[field]);
+			}
+			
+			// Check connection parameters for Web Services sources
+			if (connAttrs.connectionParameters && Array.isArray(connAttrs.connectionParameters)) {
+				for (const param of connAttrs.connectionParameters) {
+					if (param.beforeRule) ruleNames.push(param.beforeRule);
+					if (param.afterRule) ruleNames.push(param.afterRule);
+				}
+			}
+		}
+		
+		// Get unique rule names
+		const uniqueRuleNames = [...new Set(ruleNames)];
+		
+		if (uniqueRuleNames.length === 0) {
+			return [new MessageNode("No connector rules")];
+		}
+		
+		// Get all connector rules to match by name
+		const allRules = await client.getConnectorRules();
+		const results: BaseTreeItem[] = [];
+		
+		for (const ruleName of uniqueRuleNames) {
+			const rule = allRules.find(r => r.name === ruleName);
+			if (rule) {
+				results.push(new RuleTreeItem(
+					this.tenantId,
+					this.tenantName,
+					this.tenantDisplayName,
+					rule.name!,
+					rule.id!
+				));
+			}
+		}
+		
+		return results.sort(compareByLabel);
+	}
+}
+
+/**
+ * Access Profiles under a Source - shows APs that provision to this source
+ */
+export class SourceAccessProfilesTreeItem extends FolderTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+		private readonly sourceId: string,
+		private readonly sourceName: string
+	) {
+		super("Access Profiles", "source-access-profiles", tenantId, tenantName, tenantDisplayName);
+	}
+
+	iconPath = new vscode.ThemeIcon("archive");
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		const client = new ISCClient(this.tenantId, this.tenantName);
+		
+		// Get access profiles filtered by this source
+		const response = await client.getAccessProfiles({
+			filters: `source.id eq "${this.sourceId}"`,
+			limit: 250,
+			count: false
+		});
+		
+		const accessProfiles = response.data || [];
+		
+		if (accessProfiles.length === 0) {
+			return [new MessageNode("No access profiles for this source")];
+		}
+		
+		return accessProfiles
+			.sort(compareByName)
+			.map(ap => new SourceAccessProfileTreeItem(
+				this.tenantId,
+				this.tenantName,
+				this.tenantDisplayName,
+				ap.name!,
+				ap.id!
+			));
+	}
+}
+
+/**
+ * Individual Access Profile under a Source
+ */
+export class SourceAccessProfileTreeItem extends ISCResourceTreeItem {
+	contextValue = "source-access-profile";
+
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+		label: string,
+		accessProfileId: string
+	) {
+		super({
+			tenantId,
+			tenantName,
+			tenantDisplayName,
+			label,
+			resourceType: "access-profiles",
+			id: accessProfileId
+		});
+	}
+
+	// Override command to open Access Profile Editor
+	command = {
+		title: "Open Access Profile Editor",
+		command: commands.OPEN_ACCESS_PROFILE_EDITOR,
+		arguments: [this],
+	};
+
+	iconPath = new vscode.ThemeIcon("archive");
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/access-profiles/manage", this.id);
+	}
+}
+
+/**
+ * Roles under a Source - shows roles that provision to this source through access profiles
+ */
+export class SourceRolesTreeItem extends FolderTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+		private readonly sourceId: string,
+		private readonly sourceName: string
+	) {
+		super("Roles", "source-roles", tenantId, tenantName, tenantDisplayName);
+	}
+
+	iconPath = new vscode.ThemeIcon("account");
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		const client = new ISCClient(this.tenantId, this.tenantName);
+		
+		try {
+			// Use search API to find roles that reference access profiles from this source
+			// The search query looks for roles that have access profiles with this source ID
+			const searchResponse = await client.paginatedSearchRoles(
+				`accessProfiles.source.id:${this.sourceId}`,
+				250,
+				0,
+				false
+			);
+			
+			const roles = searchResponse.data || [];
+			
+			if (roles.length === 0) {
+				return [new MessageNode("No roles provision to this source")];
+			}
+			
+			return roles
+				.sort(compareByName)
+				.map((role: any) => new SourceRoleTreeItem(
+					this.tenantId,
+					this.tenantName,
+					this.tenantDisplayName,
+					role.name!,
+					role.id!
+				));
+		} catch (error) {
+			console.error('Error fetching roles for source:', error);
+			return [new MessageNode("Error loading roles")];
+		}
+	}
+}
+
+/**
+ * Individual Role under a Source
+ */
+export class SourceRoleTreeItem extends ISCResourceTreeItem {
+	contextValue = "source-role";
+
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+		label: string,
+		roleId: string
+	) {
+		super({
+			tenantId,
+			tenantName,
+			tenantDisplayName,
+			label,
+			resourceType: "roles",
+			id: roleId
+		});
+	}
+
+	// Override command to open Role Editor
+	command = {
+		title: "Open Role Editor",
+		command: commands.OPEN_ROLE_EDITOR,
+		arguments: [this],
+	};
+
+	iconPath = new vscode.ThemeIcon("account");
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/roles/manage", this.id);
+	}
+}
+
+/**
  * Containers for workflows
  */
 export class WorkflowsTreeItem extends FolderTreeItem {
@@ -630,7 +892,8 @@ export class RuleTreeItem extends ISCResourceTreeItem {
 		tenantName: string,
 		tenantDisplayName: string,
 		label: string,
-		id: string) {
+		id: string,
+		private ruleType?: string) {
 		super({
 			tenantId,
 			tenantName,
@@ -643,6 +906,13 @@ export class RuleTreeItem extends ISCResourceTreeItem {
 
 	contextValue = "connector-rule";
 	iconPath = new vscode.ThemeIcon("file-code");
+
+	// Open Rule Editor when clicking on a rule
+	command = {
+		title: "Open Rule Editor",
+		command: commands.OPEN_RULE_EDITOR,
+		arguments: [this],
+	};
 }
 
 export class IdentityProfileTreeItem extends ISCResourceTreeItem {
@@ -966,6 +1236,13 @@ export class AccessProfileTreeItem extends ISCResourceTreeItem {
 		})
 	}
 
+	// Override command to open Access Profile Editor
+	command = {
+		title: "Open Access Profile Editor",
+		command: commands.OPEN_ACCESS_PROFILE_EDITOR,
+		arguments: [this],
+	};
+
 	contextValue = "access-profile";
 	iconPath = new vscode.ThemeIcon("archive");
 
@@ -1068,11 +1345,11 @@ export class RoleTreeItem extends PageableFolderTreeItem<DimensionV2025> {
 		return this.dimensional ?  `${this.contextValue}Dimensional` : this.contextValue
 	}
 	/**
-	 * Need to force open command as it's not inhereting from ISCResourceTreeItem anymore
+	 * Open Role Editor by default
 	 */
 	command = {
-		title: "open",
-		command: commands.OPEN_RESOURCE,
+		title: "Open Role Editor",
+		command: commands.OPEN_ROLE_EDITOR,
 		arguments: [this],
 	};
 }

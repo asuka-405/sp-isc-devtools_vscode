@@ -464,6 +464,23 @@ export class ISCClient {
 		return transform;
 	}
 
+	/**
+	 * Evaluate a transform with given input
+	 * Uses the identity profile preview endpoint
+	 */
+	public async evaluateTransform(transform: any, input: any): Promise<any> {
+		console.log("> evaluateTransform", transform.name);
+		const httpClient = await this.getAxios();
+		
+		// Use the transform evaluation approach
+		const response = await httpClient.post('v3/transforms/evaluate', {
+			transform: transform,
+			input: input
+		});
+		
+		return response.data;
+	}
+
 	////////////////////////
 	//#endregion Transforms
 	////////////////////////
@@ -1442,10 +1459,20 @@ export class ISCClient {
 	//#region Governance Groups
 	//////////////////////////////
 
-	public async getGovernanceGroups(): Promise<WorkgroupDtoBeta[]> {
+	public async getGovernanceGroups(filters?: string, limit: number = 250): Promise<WorkgroupDtoBeta[]> {
 		console.log("> getGovernanceGroups");
 		const apiConfig = await this.getApiConfiguration();
 		const api = new GovernanceGroupsBetaApi(apiConfig, undefined, this.getAxiosWithInterceptors());
+		
+		if (filters) {
+			const result = await api.listWorkgroups({ 
+				filters,
+				limit,
+				sorters: "name" 
+			});
+			return result.data;
+		}
+		
 		const result = await Paginator.paginate(api, api.listWorkgroups, { sorters: "name" }, 50);
 		return result.data;
 	}

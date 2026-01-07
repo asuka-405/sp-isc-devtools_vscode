@@ -1,4 +1,5 @@
 const COMMAND_PREFIX = 'sp-isc-devtools';
+export const OPEN_HOME = `${COMMAND_PREFIX}.open-home`;
 export const OPEN_URL = `${COMMAND_PREFIX}.open-url`;
 export const OPEN_RESOURCE = `${COMMAND_PREFIX}.open-resource`;
 export const REMOVE_RESOURCE = `${COMMAND_PREFIX}.remove-resource`;
@@ -58,6 +59,8 @@ export const IMPORT_WORKFLOW = `${COMMAND_PREFIX}.workflow.import`;
 export const IMPORT_WORKFLOW_VIEW_ICON = `${COMMAND_PREFIX}.workflow.import.view-icon`;
 export const VIEW_WORKFLOW_EXECUTION_HISTORY = `${COMMAND_PREFIX}.workflow.view-execution-history`;
 export const EDIT_CONNECTOR_RULE = `${COMMAND_PREFIX}.connector-rule.edit`;
+export const OPEN_RULE_EDITOR = `${COMMAND_PREFIX}.open-rule-editor`;
+export const NEW_RULE = `${COMMAND_PREFIX}.new-rule`;
 export const NEW_CONNECTOR_RULE = `${COMMAND_PREFIX}.new-connector-rule`;
 export const UPLOAD_CONNECTOR_RULE = `${COMMAND_PREFIX}.connector-rule.upload`;
 export const VALIDATE_CONNECTOR_RULE = `${COMMAND_PREFIX}.connector-rule.validate`;
@@ -160,3 +163,20 @@ export const CAMPAIGN_FILTER_STATUS = `${COMMAND_PREFIX}.campaigns.filter.status
 
 // Service Desk
 export const EDIT_SERVICE_DESK_INTEGRATIONS_STATUS_CHECK_CONFIGURATION = `${COMMAND_PREFIX}.service-desk-integrations.edit.status-check-configuration`;
+
+// Enhanced Commands - Search, Cache, Git, Commit
+export const GLOBAL_SEARCH = `${COMMAND_PREFIX}.global-search`;
+export const OPEN_SOURCE_CONFIG_PANEL = `${COMMAND_PREFIX}.open-source-config-panel`;
+export const OPEN_TRANSFORM_EDITOR = `${COMMAND_PREFIX}.open-transform-editor`;
+export const OPEN_ACCESS_PROFILE_EDITOR = `${COMMAND_PREFIX}.open-access-profile-editor`;
+export const OPEN_ROLE_EDITOR = `${COMMAND_PREFIX}.open-role-editor`;
+export const OPEN_WORKFLOW_EDITOR = `${COMMAND_PREFIX}.open-workflow-editor`;
+export const COMMIT_ENTITY = `${COMMAND_PREFIX}.commit-entity`;
+export const COMMIT_ALL = `${COMMAND_PREFIX}.commit-all`;
+export const REVERT_ENTITY = `${COMMAND_PREFIX}.revert-entity`;
+export const SHOW_DIFF = `${COMMAND_PREFIX}.show-diff`;
+export const SETUP_GIT = `${COMMAND_PREFIX}.setup-git`;
+export const EXPORT_TO_GIT = `${COMMAND_PREFIX}.export-to-git`;
+export const CLEAR_CACHE = `${COMMAND_PREFIX}.clear-cache`;
+export const TOGGLE_STAGING = `${COMMAND_PREFIX}.toggle-staging`;
+export const OPEN_CREDENTIALS_MANAGER = `${COMMAND_PREFIX}.open-credentials-manager`;

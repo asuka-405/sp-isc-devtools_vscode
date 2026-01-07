@@ -94,6 +94,21 @@ import { DimensionExporterCommand } from './commands/role/ExportDimensions';
 import { DimensionImporterTreeViewCommand } from './commands/role/DimensionImporterTreeViewCommand';
 import { EditOrgConfigCommand } from './commands/tenant/EditOrgConfigCommand';
 
+// New services for enhanced functionality
+import { LocalCacheService } from './services/cache/LocalCacheService';
+import { CommitService } from './services/CommitService';
+import { SearchService } from './services/SearchService';
+import { GitService } from './services/GitService';
+import { SourceConfigPanel } from './webviews/source-config/SourceConfigPanel';
+import { TransformEditorPanel } from './webviews/transform-editor/TransformEditorPanel';
+import { AccessProfileEditorPanel } from './webviews/access-profile-editor/AccessProfileEditorPanel';
+import { RoleEditorPanel } from './webviews/role-editor/RoleEditorPanel';
+import { HomePanel } from './webviews/home/HomePanel';
+import { CredentialsManagerPanel } from './webviews/credentials-manager/CredentialsManagerPanel';
+import { RuleEditorPanel } from './webviews/rule-editor/RuleEditorPanel';
+import { WorkflowEditorPanel } from './webviews/workflow-editor/WorkflowEditorPanel';
+import { BeanShellService } from './services/beanshell/BeanShellService';
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -102,7 +117,31 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const tenantService = new TenantService(context.globalState, context.secrets);
 
-	SailPointISCAuthenticationProvider.initialize(tenantService)
+	SailPointISCAuthenticationProvider.initialize(tenantService);
+
+	// Initialize new services
+	LocalCacheService.initialize(context);
+	CommitService.initialize(tenantService, context);
+	SearchService.initialize(tenantService, context);
+	GitService.initialize(tenantService, context);
+	BeanShellService.initialize(context);
+
+	// Register Home Panel command
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.OPEN_HOME, () => {
+			HomePanel.createOrShow(context.extensionUri, tenantService);
+		})
+	);
+
+	// Register Credentials Manager command
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.OPEN_CREDENTIALS_MANAGER, () => {
+			CredentialsManagerPanel.createOrShow(context.extensionUri, tenantService, context);
+		})
+	);
+
+	// Show home panel on first activation (optional)
+	// HomePanel.createOrShow(context.extensionUri, tenantService);
 
 	const addTenantCommand = new AddTenantCommand(tenantService);
 	context.subscriptions.push(
@@ -679,6 +718,220 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(commands.EDIT_SERVICE_DESK_INTEGRATIONS_STATUS_CHECK_CONFIGURATION,
 			editServiceDeskTimeCheckConfiguration.execute, editServiceDeskTimeCheckConfiguration))
 
+	// Register new commands for enhanced functionality
+
+	// Global Search
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.global-search', async (tenantTreeItem: any) => {
+			if (tenantTreeItem?.tenantId) {
+				await SearchService.getInstance().showSearchQuickPick(tenantTreeItem.tenantId);
+			} else {
+				vscode.window.showWarningMessage('Please select a tenant first');
+			}
+		}));
+
+	// Source Configuration Panel
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.open-source-config-panel', async (item: any) => {
+			if (item?.tenantId && item?.id) {
+				await SourceConfigPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					item.id
+				);
+			}
+		}));
+
+	// Transform Visual Editor
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.open-transform-editor', async (item: any) => {
+			if (item?.tenantId && item?.id) {
+				await TransformEditorPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					item.id
+				);
+			}
+		}));
+
+	// Access Profile Editor
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.open-access-profile-editor', async (item: any) => {
+			if (item?.tenantId && item?.id) {
+				await AccessProfileEditorPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					item.id
+				);
+			}
+		}));
+
+	// Role Editor
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.open-role-editor', async (item: any) => {
+			if (item?.tenantId && item?.id) {
+				await RoleEditorPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					item.id
+				);
+			}
+		}));
+
+	// Rule Editor - for editing and testing BeanShell rules locally
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.OPEN_RULE_EDITOR, async (item: any) => {
+			if (item?.tenantId) {
+				await RuleEditorPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					item.id,  // May be undefined for new rules
+					item.ruleType  // Optional initial rule type
+				);
+			}
+		}));
+
+	// Create new rule
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.NEW_RULE, async (item: any) => {
+			// If called from a source context, we can pre-select appropriate rule types
+			if (item?.tenantId) {
+				await RuleEditorPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					undefined,  // No existing rule ID
+					item.ruleType  // Optional suggested rule type
+				);
+			}
+		}));
+
+	// Workflow Editor - visual workflow builder with AI integration
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.OPEN_WORKFLOW_EDITOR, async (item: any) => {
+			if (item?.tenantId) {
+				await WorkflowEditorPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					item.id,  // May be undefined for new workflows
+					context  // Pass context for extension state
+				);
+			}
+		}));
+
+	// Commit entity
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.commit-entity', async (item: any) => {
+			if (item?.tenantId && item?.entityType && item?.entityId) {
+				await CommitService.getInstance().commitEntity(
+					item.tenantId,
+					item.entityType,
+					item.entityId
+				);
+			}
+		}));
+
+	// Commit all for tenant
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.commit-all', async (item: any) => {
+			if (item?.tenantId) {
+				await CommitService.getInstance().commitAllForTenant(item.tenantId);
+			}
+		}));
+
+	// Revert entity
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.revert-entity', async (item: any) => {
+			if (item?.tenantId && item?.entityType && item?.entityId) {
+				await CommitService.getInstance().revertEntity(
+					item.tenantId,
+					item.entityType,
+					item.entityId
+				);
+			}
+		}));
+
+	// Show diff
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.show-diff', async (item: any) => {
+			if (item?.tenantId && item?.entityType && item?.entityId) {
+				await CommitService.getInstance().openDiffView(
+					item.tenantId,
+					item.entityType,
+					item.entityId
+				);
+			}
+		}));
+
+	// Git integration
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.setup-git', async (item: any) => {
+			if (item?.tenantId) {
+				await GitService.getInstance().promptVersionControlSetup(item.tenantId);
+			}
+		}));
+
+	// Export to git
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.export-to-git', async (item: any) => {
+			if (item?.tenantId) {
+				const uri = await vscode.window.showOpenDialog({
+					canSelectFiles: false,
+					canSelectFolders: true,
+					canSelectMany: false,
+					title: 'Select export directory'
+				});
+				if (uri && uri.length > 0) {
+					await GitService.getInstance().exportForVersionControl({
+						tenantId: item.tenantId,
+						outputDir: uri[0].fsPath,
+						createCommit: true
+					});
+				}
+			}
+		}));
+
+	// Clear cache
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.clear-cache', async (item: any) => {
+			const confirm = await vscode.window.showWarningMessage(
+				'Clear all cached entities? This cannot be undone.',
+				{ modal: true },
+				'Clear Cache'
+			);
+			if (confirm === 'Clear Cache') {
+				if (item?.tenantId) {
+					LocalCacheService.getInstance().clearTenantCache(item.tenantId);
+				} else {
+					LocalCacheService.getInstance().clearAllCache();
+				}
+				vscode.window.showInformationMessage('Cache cleared');
+			}
+		}));
+
+	// Toggle staging
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sp-isc-devtools.toggle-staging', async () => {
+			const commitService = CommitService.getInstance();
+			const currentState = commitService.isStagingEnabled();
+			await commitService.toggleStaging(!currentState);
+			vscode.window.showInformationMessage(
+				`Staging area ${!currentState ? 'enabled' : 'disabled'}`
+			);
+		}));
 
 	let api = {
 		getRoots(): Array<TenantInfo | FolderTreeNode> {

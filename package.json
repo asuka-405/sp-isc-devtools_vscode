@@ -2,7 +2,7 @@
   "name": "sp-isc-devtools",
   "displayName": "SailPoint ISC Dev Tools (beta)",
   "description": "Accelerate development of SailPoint ISC by providing tools for managing tenants, sources, transforms, and more. This is a fork of SailPoint Identity Security Cloud extension by Yannick Beot.",
-  "version": "0.0.1",
+  "version": "0.0.1-alpha.1",
   "publisher": "ArchDev",
   "icon": "resources/isc.png",
   "bugs": {
@@ -59,10 +59,22 @@
     "viewsWelcome": [
       {
         "view": "sp-isc-devtools.view",
-        "contents": "No tenant.\n[Add Tenant](command:sp-isc-devtools.add-tenant)"
+        "contents": "Welcome to ISC DevTools!\n[🏠 Open Home](command:sp-isc-devtools.open-home)\n[➕ Add Tenant](command:sp-isc-devtools.add-tenant)"
       }
     ],
     "commands": [
+      {
+        "command": "sp-isc-devtools.open-home",
+        "title": "ISC: Open Home Page",
+        "icon": "$(home)",
+        "category": "ISC DevTools"
+      },
+      {
+        "command": "sp-isc-devtools.open-credentials-manager",
+        "title": "ISC: Manage Credentials",
+        "icon": "$(key)",
+        "category": "ISC DevTools"
+      },
       {
         "command": "sp-isc-devtools.add-tenant",
         "title": "ISC: Add tenant...",
@@ -99,6 +111,79 @@
       {
         "command": "sp-isc-devtools.remove-tenant",
         "title": "Remove tenant"
+      },
+      {
+        "command": "sp-isc-devtools.global-search",
+        "title": "ISC: Global Search...",
+        "icon": "$(search)"
+      },
+      {
+        "command": "sp-isc-devtools.open-source-config-panel",
+        "title": "Open Source Configuration Panel",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "sp-isc-devtools.open-transform-editor",
+        "title": "Open Transform Visual Editor",
+        "icon": "$(symbol-function)"
+      },
+      {
+        "command": "sp-isc-devtools.open-access-profile-editor",
+        "title": "Open Access Profile Editor",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "sp-isc-devtools.open-role-editor",
+        "title": "Open Role Editor",
+        "icon": "$(account)"
+      },
+      {
+        "command": "sp-isc-devtools.open-rule-editor",
+        "title": "Open Rule Editor (BeanShell)",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "sp-isc-devtools.new-rule",
+        "title": "Create New Rule",
+        "icon": "$(add)"
+      },
+      {
+        "command": "sp-isc-devtools.commit-entity",
+        "title": "Commit Changes",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "sp-isc-devtools.commit-all",
+        "title": "Commit All Changes",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "sp-isc-devtools.revert-entity",
+        "title": "Revert Changes",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "sp-isc-devtools.show-diff",
+        "title": "Show Diff (Local vs Remote)",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "sp-isc-devtools.setup-git",
+        "title": "Setup Version Control...",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "sp-isc-devtools.export-to-git",
+        "title": "Export to Git Repository...",
+        "icon": "$(repo-push)"
+      },
+      {
+        "command": "sp-isc-devtools.clear-cache",
+        "title": "Clear Local Cache"
+      },
+      {
+        "command": "sp-isc-devtools.toggle-staging",
+        "title": "Toggle Staging Area"
       },
       {
         "command": "sp-isc-devtools.rename-tenant",
@@ -166,6 +251,41 @@
       {
         "command": "sp-isc-devtools.modified-resource",
         "title": "Modified resource"
+      },
+      {
+        "command": "sp-isc-devtools.global-search",
+        "title": "ISC: Global Search...",
+        "icon": "$(search)"
+      },
+      {
+        "command": "sp-isc-devtools.open-source-config-panel",
+        "title": "Open Source Configuration Panel",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "sp-isc-devtools.open-transform-editor",
+        "title": "Open Transform Visual Editor",
+        "icon": "$(symbol-function)"
+      },
+      {
+        "command": "sp-isc-devtools.commit-entity",
+        "title": "Commit Changes to ISC",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "sp-isc-devtools.commit-all",
+        "title": "Commit All Pending Changes",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "sp-isc-devtools.revert-entity",
+        "title": "Revert Local Changes",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "sp-isc-devtools.show-diff",
+        "title": "Show Diff (Local vs Remote)",
+        "icon": "$(diff)"
       },
       {
         "command": "sp-isc-devtools.refresh-forced",
@@ -1121,19 +1241,24 @@
       ],
       "view/title": [
         {
+          "command": "sp-isc-devtools.open-home",
+          "when": "view == sp-isc-devtools.view",
+          "group": "navigation@0"
+        },
+        {
           "command": "sp-isc-devtools.folder.add-root",
           "when": "view == sp-isc-devtools.view",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "sp-isc-devtools.add-tenant",
           "when": "view == sp-isc-devtools.view",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "sp-isc-devtools.refresh-forced",
           "when": "view == sp-isc-devtools.view",
-          "group": "navigation"
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -1146,6 +1271,21 @@
           "command": "sp-isc-devtools.open-resource",
           "when": "view == sp-isc-devtools.view && viewItem =~ /(transform|Workflow|source|schema|provisioning-policy|role|roleDimensional|dimension|access-profile|lifecycle-state|identity-profile|connector-rule|service-desk-integration|form-definition|identities|source-app|campaign)$/",
           "group": "_@0"
+        },
+        {
+          "command": "sp-isc-devtools.open-source-config-panel",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /.*source$/",
+          "group": "_@1"
+        },
+        {
+          "command": "sp-isc-devtools.open-transform-editor",
+          "when": "view == sp-isc-devtools.view && viewItem == transform",
+          "group": "_@1"
+        },
+        {
+          "command": "sp-isc-devtools.global-search",
+          "when": "view == sp-isc-devtools.view && viewItem =~ /^tenant/",
+          "group": "search@1"
         },
         {
           "command": "sp-isc-devtools.export-node-config.view",
@@ -1379,6 +1519,16 @@
           "command": "sp-isc-devtools.new-connector-rule",
           "when": "view == sp-isc-devtools.view && viewItem == connector-rules",
           "group": "inline@1"
+        },
+        {
+          "command": "sp-isc-devtools.new-rule",
+          "when": "view == sp-isc-devtools.view && viewItem == connector-rules",
+          "group": "inline@2"
+        },
+        {
+          "command": "sp-isc-devtools.open-rule-editor",
+          "when": "view == sp-isc-devtools.view && viewItem == connector-rule",
+          "group": "_@0"
         },
         {
           "command": "sp-isc-devtools.connector-rule.export-script.view",
@@ -1678,6 +1828,17 @@
     },
     "keybindings": [
       {
+        "command": "sp-isc-devtools.open-home",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h"
+      },
+      {
+        "command": "sp-isc-devtools.new-rule",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "view == sp-isc-devtools.view"
+      },
+      {
         "command": "sp-isc-devtools.transform.evaluate.cloud.editor",
         "key": "ctrl+alt+t",
         "mac": "shift+cmd+t"
@@ -1805,6 +1966,51 @@
         "sp-isc-devtools.report.campaigns.filename": {
           "type": "string",
           "default": "%x/reports/%T-Campaign-%S-%y%M%d-%h%m%s.csv"
+        },
+        "sp-isc-devtools.commit.enableStagingArea": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable staging area for commits. When enabled, changes must be explicitly staged before committing."
+        },
+        "sp-isc-devtools.cache.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable local caching of entities for offline viewing and diff comparison."
+        },
+        "sp-isc-devtools.git.autoSuggestSetup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically suggest setting up version control for configurations."
+        },
+        "sp-isc-devtools.treeView.hierarchicalMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use hierarchical tree view with grouped entities (Sources with nested APs, Rules, etc.)"
+        },
+        "sp-isc-devtools.search.recentSearchesLimit": {
+          "type": "number",
+          "default": 20,
+          "description": "Maximum number of recent searches to remember."
+        },
+        "sp-isc-devtools.rdk.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the SailPoint Rule Development Kit (RDK) directory."
+        },
+        "sp-isc-devtools.rdk.autoDetect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect and use RDK if installed."
+        },
+        "sp-isc-devtools.beanshell.javaPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Java executable. Leave empty to auto-detect."
+        },
+        "sp-isc-devtools.beanshell.timeout": {
+          "type": "number",
+          "default": 30,
+          "description": "Timeout in seconds for local BeanShell script execution."
         }
       }
     }
