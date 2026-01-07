@@ -225,12 +225,21 @@ export class TransformEditorPanel {
         this._panel.webview.html = this._getHtmlForWebview();
     }
 
+    /**
+     * Sanitize JSON string for safe injection into script tags
+     */
+    private _sanitizeJsonForScript(json: string): string {
+        return json
+            .replace(/<\/script/gi, '<\\/script')
+            .replace(/<\/\//g, '<\\/\\/');
+    }
+
     private _getHtmlForWebview(): string {
         const cacheService = LocalCacheService.getInstance();
         const hasLocalChanges = cacheService.hasLocalChanges(this.tenantId, CacheableEntityType.transform, this.transformId);
-        const transformJson = JSON.stringify(this.transformData || {}, null, 2);
-        const transformTypesJson = JSON.stringify(TRANSFORM_TYPES);
-        const allTransformsJson = JSON.stringify(this.allTransforms.map(t => ({ id: t.id, name: t.name, type: t.type })));
+        const transformJson = this._sanitizeJsonForScript(JSON.stringify(this.transformData || {}, null, 2));
+        const transformTypesJson = this._sanitizeJsonForScript(JSON.stringify(TRANSFORM_TYPES));
+        const allTransformsJson = this._sanitizeJsonForScript(JSON.stringify(this.allTransforms.map(t => ({ id: t.id, name: t.name, type: t.type }))));
         const tenantInfo = this.tenantService.getTenant(this.tenantId);
         const isReadOnly = tenantInfo?.readOnly ?? false;
 
@@ -482,6 +491,9 @@ export class TransformEditorPanel {
             const parts = path.split('.');
             let obj = transformData;
             for (let i = 0; i < parts.length - 1; i++) {
+                if (!obj.hasOwnProperty(parts[i]) || typeof obj[parts[i]] !== 'object' || obj[parts[i]] === null) {
+                    obj[parts[i]] = {};
+                }
                 obj = obj[parts[i]];
             }
             obj[parts[parts.length - 1]] = value;

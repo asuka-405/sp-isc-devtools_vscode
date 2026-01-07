@@ -772,8 +772,17 @@ IMPORTANT:
         this._panel.webview.html = this._getHtmlForWebview();
     }
 
+    /**
+     * Sanitize JSON string for safe injection into script tags
+     */
+    private _sanitizeJsonForScript(json: string): string {
+        return json
+            .replace(/<\/script/gi, '<\\/script')
+            .replace(/<\/\//g, '<\\/\\/');
+    }
+
     private _getHtmlForWebview(): string {
-        const workflowJson = this.workflowData ? JSON.stringify(this.workflowData, null, 2) : 'null';
+        const workflowJson = this.workflowData ? this._sanitizeJsonForScript(JSON.stringify(this.workflowData, null, 2)) : 'null';
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -971,8 +980,8 @@ IMPORTANT:
         
         <div class="editor-pane">
             <div class="editor-tabs">
-                <div class="editor-tab active" onclick="switchTab('visual')">Visual</div>
-                <div class="editor-tab" onclick="switchTab('json')">JSON</div>
+                <div class="editor-tab active" onclick="switchTab('visual', this)">Visual</div>
+                <div class="editor-tab" onclick="switchTab('json', this)">JSON</div>
             </div>
             <div id="workflowCanvas"></div>
             <div id="jsonEditor" style="display: none; flex: 1; padding: 16px; overflow: auto;">
@@ -1500,9 +1509,11 @@ IMPORTANT:
             }
         });
         
-        function switchTab(tab) {
+        function switchTab(tab, el) {
             document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+            if (el) {
+                el.classList.add('active');
+            }
             if (tab === 'visual') {
                 document.getElementById('workflowCanvas').style.display = 'block';
                 document.getElementById('jsonEditor').style.display = 'none';
@@ -1573,6 +1584,22 @@ IMPORTANT:
                 }
             }
             
+            // Preserve existing start if provided and exists in nodes, otherwise find node with isStart flag, fallback to first node
+            let startNode = '';
+            if (workflowData?.definition?.start) {
+                const preservedStartNode = nodes.find(n => n.name === workflowData.definition.start);
+                if (preservedStartNode) {
+                    startNode = workflowData.definition.start;
+                } else {
+                    // Fallback if preserved start node doesn't exist in current nodes
+                    const startNodeObj = nodes.find(n => n.isStart);
+                    startNode = startNodeObj?.name || nodes[0]?.name || '';
+                }
+            } else {
+                const startNodeObj = nodes.find(n => n.isStart);
+                startNode = startNodeObj?.name || nodes[0]?.name || '';
+            }
+            
             return {
                 name: document.getElementById('workflowName').value || 'Untitled Workflow',
                 description: document.getElementById('workflowDescription').value || '',
@@ -1582,7 +1609,7 @@ IMPORTANT:
                     attributes: triggerAttributes
                 },
                 definition: {
-                    start: nodes[0]?.name || '',
+                    start: startNode,
                     steps: steps
                 }
             };
@@ -1991,7 +2018,7 @@ IMPORTANT:
                         if (msg.data.definition) {
                             parseWorkflowSteps(msg.data.definition);
                             // Switch to visual tab to show the generated workflow
-                            switchTab('visual');
+                            switchTab('visual', null);
                             setTimeout(() => {
                                 setAIStatus('success', 'Workflow loaded. Review and save when ready.');
                             }, 2000);

@@ -1,10 +1,30 @@
 import * as vscode from 'vscode';
 import { ISCClient } from '../services/ISCClient';
-import { LocalCacheService, CacheableEntityType } from '../services/cache/LocalCacheService';
 import { BaseTreeItem, ISCResourceTreeItem } from './ISCTreeItem';
 import { getResourceUri, getUIUrl } from '../utils/UriUtils';
 import { compareByName, compareByLabel } from '../utils';
 import * as commands from '../commands/constants';
+
+/**
+ * Placeholder tree item for "Coming soon" features
+ */
+class PlaceholderTreeItem extends BaseTreeItem {
+    constructor(
+        label: string,
+        tenantId: string,
+        tenantName: string,
+        tenantDisplayName: string
+    ) {
+        super(label, tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+    }
+
+    iconPath = new vscode.ThemeIcon('info');
+    contextValue = 'placeholder';
+
+    async getChildren(): Promise<BaseTreeItem[]> {
+        return [];
+    }
+}
 
 /**
  * Enhanced Source Tree Item with nested children
@@ -51,7 +71,7 @@ export class EnhancedSourceTreeItem extends ISCResourceTreeItem {
             this.tenantId,
             this.tenantName,
             this.tenantDisplayName,
-            this.uri
+            this.id
         ));
         
         // Provisioning Policies
@@ -59,7 +79,7 @@ export class EnhancedSourceTreeItem extends ISCResourceTreeItem {
             this.tenantId,
             this.tenantName,
             this.tenantDisplayName,
-            this.uri
+            this.id
         ));
         
         // Connector Rules (rules that reference this source)
@@ -140,7 +160,7 @@ export class SourceSchemasTreeItem extends BaseTreeItem {
         tenantId: string,
         tenantName: string,
         tenantDisplayName: string,
-        private readonly parentUri: vscode.Uri
+        private readonly sourceId: string
     ) {
         super('📊 Schemas', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.Collapsed);
     }
@@ -150,8 +170,7 @@ export class SourceSchemasTreeItem extends BaseTreeItem {
 
     async getChildren(): Promise<BaseTreeItem[]> {
         const client = new ISCClient(this.tenantId, this.tenantName);
-        const sourceId = this.parentUri.path.split('/')[2]; // Extract source ID from URI
-        const schemas = await client.getSchemas(sourceId);
+        const schemas = await client.getSchemas(this.sourceId);
         
         return schemas
             .sort(compareByName)
@@ -160,7 +179,7 @@ export class SourceSchemasTreeItem extends BaseTreeItem {
                 this.tenantName,
                 this.tenantDisplayName,
                 schema.name!,
-                sourceId,
+                this.sourceId,
                 schema.id!
             ));
     }
@@ -203,7 +222,7 @@ export class SourceProvisioningPoliciesTreeItem extends BaseTreeItem {
         tenantId: string,
         tenantName: string,
         tenantDisplayName: string,
-        private readonly parentUri: vscode.Uri
+        private readonly sourceId: string
     ) {
         super('🔧 Provisioning Policies', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.Collapsed);
     }
@@ -213,8 +232,7 @@ export class SourceProvisioningPoliciesTreeItem extends BaseTreeItem {
 
     async getChildren(): Promise<BaseTreeItem[]> {
         const client = new ISCClient(this.tenantId, this.tenantName);
-        const sourceId = this.parentUri.path.split('/')[2];
-        const policies = await client.getProvisioningPolicies(sourceId);
+        const policies = await client.getProvisioningPolicies(this.sourceId);
         
         return policies
             .sort(compareByLabel)
@@ -223,7 +241,7 @@ export class SourceProvisioningPoliciesTreeItem extends BaseTreeItem {
                 this.tenantName,
                 this.tenantDisplayName,
                 policy.name || policy.usageType!,
-                sourceId,
+                this.sourceId,
                 policy.usageType!
             ));
     }
@@ -411,19 +429,15 @@ export class SourceRolesTreeItem extends BaseTreeItem {
     async getChildren(): Promise<BaseTreeItem[]> {
         const client = new ISCClient(this.tenantId, this.tenantName);
         
-        // Search for roles that have access profiles from this source
-        // This requires searching through the access profiles in each role
-        // For now, we'll search roles and filter client-side
-        const response = await client.getRoles({
-            limit: 250,
-            count: false
-        });
+        // Use server-side search to find roles that have access profiles from this source
+        const response = await client.paginatedSearchRoles(
+            `accessProfiles.source.id:${this.sourceId}`,
+            250,
+            0,
+            false
+        );
         
-        const roles = (response.data || []).filter(role => {
-            // Check if any access profile in this role is from our source
-            const accessProfiles = role.accessProfiles || [];
-            return accessProfiles.some((ap: any) => ap.source?.id === this.sourceId);
-        });
+        const roles = response.data || [];
         
         return roles
             .sort(compareByName)
@@ -880,7 +894,7 @@ export class CloudRulesFolderTreeItem extends BaseTreeItem {
         tenantName: string,
         tenantDisplayName: string
     ) {
-        super('📜 Cloud Rules', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.Collapsed);
+        super('📜 Cloud Rules', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
     }
 
     iconPath = new vscode.ThemeIcon('file-code');
@@ -889,8 +903,8 @@ export class CloudRulesFolderTreeItem extends BaseTreeItem {
     async getChildren(): Promise<BaseTreeItem[]> {
         // Cloud rules are identity attribute rules, not connector rules
         // These are referenced in identity profiles by rule type
-        // For now, return empty - can be expanded later
-        return [];
+        // For now, return placeholder - can be expanded later
+        return [new PlaceholderTreeItem('Coming soon', this.tenantId, this.tenantName, this.tenantDisplayName)];
     }
 }
 
@@ -951,52 +965,9 @@ export class WorkflowsFolderTreeItem extends BaseTreeItem {
 }
 
 /**
- * Workflow tree item
+ * Workflow tree item - using the one from ISCTreeItem.ts to avoid duplication
  */
-export class WorkflowTreeItem extends ISCResourceTreeItem {
-    constructor(
-        tenantId: string,
-        tenantName: string,
-        tenantDisplayName: string,
-        label: string,
-        id: string,
-        public enabled: boolean
-    ) {
-        super({
-            tenantId,
-            tenantName,
-            tenantDisplayName,
-            label,
-            resourceType: 'workflows',
-            resourceId: id,
-            id: `${tenantId}-${id}`
-        });
-    }
-
-    contextValue = 'workflow';
-
-    get computedContextValue() {
-        return this.enabled ? 'enabledWorkflow' : 'disabledWorkflow';
-    }
-
-    updateIcon(context: vscode.ExtensionContext): void {
-        if (this.enabled) {
-            this.iconPath = {
-                light: context.asAbsolutePath('resources/light/workflow-enabled.svg'),
-                dark: context.asAbsolutePath('resources/dark/workflow-enabled.svg'),
-            };
-        } else {
-            this.iconPath = {
-                light: context.asAbsolutePath('resources/light/workflow-disabled.svg'),
-                dark: context.asAbsolutePath('resources/dark/workflow-disabled.svg'),
-            };
-        }
-    }
-
-    getUrl(): vscode.Uri | undefined {
-        return getUIUrl(this.tenantName, 'ui/wf/edit', this.resourceId);
-    }
-}
+import { WorkflowTreeItem } from './ISCTreeItem';
 
 /**
  * Forms folder
@@ -1070,7 +1041,7 @@ export class TriggerSubscriptionsFolderTreeItem extends BaseTreeItem {
         tenantName: string,
         tenantDisplayName: string
     ) {
-        super('🎯 Trigger Subscriptions', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.Collapsed);
+        super('🎯 Trigger Subscriptions', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
     }
 
     iconPath = new vscode.ThemeIcon('broadcast');
@@ -1078,7 +1049,7 @@ export class TriggerSubscriptionsFolderTreeItem extends BaseTreeItem {
 
     async getChildren(): Promise<BaseTreeItem[]> {
         // TODO: Implement trigger subscriptions listing
-        return [];
+        return [new PlaceholderTreeItem('Coming soon', this.tenantId, this.tenantName, this.tenantDisplayName)];
     }
 }
 
@@ -1128,7 +1099,7 @@ export class TransformsFolderTreeItem extends BaseTreeItem {
         
         return transforms
             .sort(compareByName)
-            .map(t => new TransformTreeItem(
+            .map(t => new EnhancedTransformTreeItem(
                 this.tenantId,
                 this.tenantName,
                 this.tenantDisplayName,
@@ -1140,9 +1111,9 @@ export class TransformsFolderTreeItem extends BaseTreeItem {
 }
 
 /**
- * Transform tree item with reference discovery
+ * Enhanced Transform tree item with reference discovery
  */
-export class TransformTreeItem extends ISCResourceTreeItem {
+export class EnhancedTransformTreeItem extends ISCResourceTreeItem {
     constructor(
         tenantId: string,
         tenantName: string,
@@ -1299,7 +1270,7 @@ export class TagsFolderTreeItem extends BaseTreeItem {
         tenantName: string,
         tenantDisplayName: string
     ) {
-        super('🏷️ Tags', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.Collapsed);
+        super('🏷️ Tags', tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
     }
 
     iconPath = new vscode.ThemeIcon('tag');
@@ -1307,7 +1278,7 @@ export class TagsFolderTreeItem extends BaseTreeItem {
 
     async getChildren(): Promise<BaseTreeItem[]> {
         // TODO: Implement tags listing
-        return [];
+        return [new PlaceholderTreeItem('Coming soon', this.tenantId, this.tenantName, this.tenantDisplayName)];
     }
 }
 

@@ -370,15 +370,24 @@ export class SourceConfigPanel {
         this._panel.webview.html = this._getHtmlForWebview();
     }
 
+    /**
+     * Sanitize JSON string for safe injection into script tags
+     */
+    private _sanitizeJsonForScript(json: string): string {
+        return json
+            .replace(/<\/script/gi, '<\\/script')
+            .replace(/<\/\//g, '<\\/\\/');
+    }
+
     private _getHtmlForWebview(): string {
         const cacheService = LocalCacheService.getInstance();
         const hasLocalChanges = cacheService.hasLocalChanges(this.tenantId, CacheableEntityType.source, this.sourceId);
-        const sourceJson = JSON.stringify(this.sourceData || {}, null, 2);
+        const sourceJson = this._sanitizeJsonForScript(JSON.stringify(this.sourceData || {}, null, 2));
         const tenantInfo = this.tenantService.getTenant(this.tenantId);
         const isReadOnly = tenantInfo?.readOnly ?? false;
-        const clustersJson = JSON.stringify(this.clusters || []);
-        const schemasJson = JSON.stringify(this.schemas || []);
-        const provPoliciesJson = JSON.stringify(this.provisioningPolicies || []);
+        const clustersJson = this._sanitizeJsonForScript(JSON.stringify(this.clusters || []));
+        const schemasJson = this._sanitizeJsonForScript(JSON.stringify(this.schemas || []));
+        const provPoliciesJson = this._sanitizeJsonForScript(JSON.stringify(this.provisioningPolicies || []));
 
         return `<!DOCTYPE html>
 <html lang="en">

@@ -253,41 +253,6 @@
         "title": "Modified resource"
       },
       {
-        "command": "sp-isc-devtools.global-search",
-        "title": "ISC: Global Search...",
-        "icon": "$(search)"
-      },
-      {
-        "command": "sp-isc-devtools.open-source-config-panel",
-        "title": "Open Source Configuration Panel",
-        "icon": "$(gear)"
-      },
-      {
-        "command": "sp-isc-devtools.open-transform-editor",
-        "title": "Open Transform Visual Editor",
-        "icon": "$(symbol-function)"
-      },
-      {
-        "command": "sp-isc-devtools.commit-entity",
-        "title": "Commit Changes to ISC",
-        "icon": "$(cloud-upload)"
-      },
-      {
-        "command": "sp-isc-devtools.commit-all",
-        "title": "Commit All Pending Changes",
-        "icon": "$(cloud-upload)"
-      },
-      {
-        "command": "sp-isc-devtools.revert-entity",
-        "title": "Revert Local Changes",
-        "icon": "$(discard)"
-      },
-      {
-        "command": "sp-isc-devtools.show-diff",
-        "title": "Show Diff (Local vs Remote)",
-        "icon": "$(diff)"
-      },
-      {
         "command": "sp-isc-devtools.refresh-forced",
         "title": "ISC: Refresh",
         "icon": "$(refresh)"
@@ -1834,8 +1799,8 @@
       },
       {
         "command": "sp-isc-devtools.new-rule",
-        "key": "ctrl+shift+r",
-        "mac": "cmd+shift+r",
+        "key": "ctrl+alt+shift+r",
+        "mac": "cmd+alt+shift+r",
         "when": "view == sp-isc-devtools.view"
       },
       {

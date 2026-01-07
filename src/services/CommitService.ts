@@ -28,11 +28,24 @@ export interface CommitResult {
 /**
  * Service for managing commits
  */
+class DiffContentProvider implements vscode.TextDocumentContentProvider {
+    private content: Map<string, string> = new Map();
+    
+    setContent(uri: string, content: string) {
+        this.content.set(uri, content);
+    }
+    
+    provideTextDocumentContent(uri: vscode.Uri): string {
+        return this.content.get(uri.toString()) || '';
+    }
+}
+
 export class CommitService {
     private static instance: CommitService;
     private readonly _onCommitComplete = new vscode.EventEmitter<CommitResult>();
     public readonly onCommitComplete = this._onCommitComplete.event;
     private stagingEnabled: boolean = false;
+    private readonly diffContentProvider: DiffContentProvider;
 
     private constructor(
         private readonly tenantService: TenantService,
@@ -40,6 +53,12 @@ export class CommitService {
     ) {
         const config = vscode.workspace.getConfiguration('sp-isc-devtools');
         this.stagingEnabled = config.get('commit.enableStagingArea', false);
+        
+        // Register the diff content provider once in constructor
+        this.diffContentProvider = new DiffContentProvider();
+        this.context.subscriptions.push(
+            vscode.workspace.registerTextDocumentContentProvider('isc-diff', this.diffContentProvider)
+        );
     }
 
     public isStagingEnabled(): boolean {
@@ -277,14 +296,16 @@ export class CommitService {
                 await client.updateResource(`v3/service-desk-integrations/${entityId}`, JSON.stringify(data));
                 break;
             case CacheableEntityType.schema:
-                if (parentId) {
-                    await client.updateResource(`v3/sources/${parentId}/schemas/${entityId}`, JSON.stringify(data));
+                if (!parentId) {
+                    throw new Error(`Cannot update schema ${entityId}: parentId (sourceId) is required. Entity type: ${entityType}, usageType: ${(data as any).usageType || 'N/A'}`);
                 }
+                await client.updateResource(`v3/sources/${parentId}/schemas/${entityId}`, JSON.stringify(data));
                 break;
             case CacheableEntityType.provisioningPolicy:
-                if (parentId) {
-                    await client.updateResource(`v3/sources/${parentId}/provisioning-policies/${data.usageType}`, JSON.stringify(data));
+                if (!parentId) {
+                    throw new Error(`Cannot update provisioning policy ${entityId}: parentId (sourceId) is required. Entity type: ${entityType}, usageType: ${(data as any).usageType || 'N/A'}`);
                 }
+                await client.updateResource(`v3/sources/${parentId}/provisioning-policies/${data.usageType}`, JSON.stringify(data));
                 break;
             default:
                 throw new Error(`Unsupported entity type: ${entityType}`);
@@ -318,15 +339,16 @@ export class CommitService {
         }
 
         try {
-            const client = new ISCClient(tenantId, tenantInfo.name);
-            const remoteData = await this.fetchRemoteEntity(client, entityType, entityId);
-            
             const cached = cacheService.getCachedEntity(tenantId, entityType, entityId);
+            const client = new ISCClient(tenantId, tenantInfo.name);
+            const remoteData = await this.fetchRemoteEntity(client, entityType, entityId, cached?.parentId);
+            
+            const entityName = remoteData.name ?? cached?.name ?? '';
             await cacheService.cacheEntity(
                 tenantId,
                 entityType,
                 entityId,
-                cached?.name ?? '',
+                entityName,
                 remoteData,
                 cached?.parentId
             );
@@ -399,28 +421,11 @@ export class CommitService {
             const localContent = JSON.stringify(cached.data, null, 2);
             const remoteContent = JSON.stringify(remoteData, null, 2);
             
-            // Create virtual documents for diff view
-            const provider = new (class implements vscode.TextDocumentContentProvider {
-                private content: Map<string, string> = new Map();
-                
-                setContent(uri: string, content: string) {
-                    this.content.set(uri, content);
-                }
-                
-                provideTextDocumentContent(uri: vscode.Uri): string {
-                    return this.content.get(uri.toString()) || '';
-                }
-            })();
-            
             const localUri = vscode.Uri.parse(`isc-diff://local/${cached.name}.json`);
             const remoteUri = vscode.Uri.parse(`isc-diff://remote/${cached.name}.json`);
             
-            provider.setContent(localUri.toString(), localContent);
-            provider.setContent(remoteUri.toString(), remoteContent);
-            
-            this.context.subscriptions.push(
-                vscode.workspace.registerTextDocumentContentProvider('isc-diff', provider)
-            );
+            this.diffContentProvider.setContent(localUri.toString(), localContent);
+            this.diffContentProvider.setContent(remoteUri.toString(), remoteContent);
             
             await vscode.commands.executeCommand('vscode.diff', 
                 remoteUri, 
