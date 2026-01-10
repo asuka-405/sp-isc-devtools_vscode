@@ -2,7 +2,11 @@ import { Uri } from "vscode";
 export class EndpointUtils {
 
     public static getBaseUrl(tenantName: string): string {
-        let baseApiUrl = `https://${tenantName}.api.identitynow.com`;
+        // Remove spaces and convert to lowercase for URL construction
+        // Tenant names with spaces should be sanitized (e.g., "TMF Sandbox" -> "tmf-sandbox")
+        let sanitized = tenantName.trim().toLowerCase().replace(/\s+/g, '-');
+        
+        let baseApiUrl = `https://${sanitized}.api.identitynow.com`;
 
         if (tenantName.indexOf('.') > 0) {
             if (tenantName.includes('.identitysoon.com')) {

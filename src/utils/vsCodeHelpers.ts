@@ -303,7 +303,20 @@ export async function createNewFile(newUri: vscode.Uri, obj: any): Promise<void>
 	const strContent = typeof obj === 'object' ? JSON.stringify(obj, null, 4) : obj;
 
 	const edit = new vscode.WorkspaceEdit();
-	edit.insert(newUri, new vscode.Position(0, 0), strContent);
+	
+	// Replace entire document content instead of just inserting
+	const fullRange = new vscode.Range(
+		document.positionAt(0),
+		document.positionAt(document.getText().length)
+	);
+	
+	// If document is empty, use insert; otherwise replace
+	if (document.getText().length === 0) {
+		edit.insert(newUri, new vscode.Position(0, 0), strContent);
+	} else {
+		edit.replace(newUri, fullRange, strContent);
+	}
+	
 	await vscode.workspace.applyEdit(edit);
 }
 

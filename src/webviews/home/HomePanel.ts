@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { TenantService } from '../../services/TenantService';
 import { TenantInfo } from '../../models/TenantInfo';
-import { ISCClient } from '../../services/ISCClient';
+import { ISCClient, TOTAL_COUNT_HEADER } from '../../services/ISCClient';
 import { LocalCacheService } from '../../services/cache/LocalCacheService';
 import { SyncManager } from '../../services/SyncManager';
 import { AdapterLayer } from '../../services/AdapterLayer';
@@ -10,15 +10,20 @@ import * as commands from '../../commands/constants';
 type EntityType = 'sources' | 'transforms' | 'workflows' | 'identity-profiles' | 'rules' | 
                   'access-profiles' | 'roles' | 'forms' | 'governance-groups' | 'campaigns' |
                   'service-desk' | 'notification-templates' | 'segments' | 'tags' | 
-                  'identities' | 'identity-attributes' | 'search-attributes' | 'applications';
+                  'identities' | 'identity-attributes' | 'search-attributes' | 'applications' |
+                  'accounts' | 'access-history' | 'outliers' | 'activities' |
+                  'entitlements' | 'role-insights' | 'metadata' | 'launchers' |
+                  'virtual-appliances' | 'integrations' | 'multi-host-sources' | 'credential-providers';
 
 interface NavigationState {
-    view: 'home' | 'tenant' | 'entity-list' | 'sync-management' | 'search';
+    view: 'home' | 'tenant' | 'entity-list' | 'sync-management' | 'search' | 'automation';
     tenantId?: string;
     tenantName?: string;
     entityType?: EntityType;
     searchQuery?: string;
     searchResults?: any[];
+    automationTaskId?: string;
+    automationStep?: 'select' | 'configure' | 'execute';
 }
 
 export class HomePanel {
@@ -89,6 +94,31 @@ export class HomePanel {
             case 'goBack':
                 this.goBack();
                 await this._update();
+                break;
+            case 'openAutomation':
+                this.navigationState = {
+                    view: 'automation',
+                    tenantId: this.navigationState.tenantId,
+                    tenantName: this.navigationState.tenantName
+                };
+                await this._update();
+                break;
+            case 'selectAutomationTask':
+                this.navigationState.automationTaskId = message.taskId;
+                this.navigationState.automationStep = 'configure';
+                await this._update();
+                break;
+            case 'executeAutomationTask':
+                await this.handleExecuteAutomationTask(message);
+                break;
+            case 'executeTaskSearch':
+                await this.handleExecuteTaskSearch(message.taskId, message.query);
+                break;
+            case 'uploadCSV':
+                await this.handleCSVUpload(message.fileData, message.fileName, message.taskId);
+                break;
+            case 'searchIdentities':
+                await this.handleSearchIdentities(message.query, message.fieldName);
                 break;
             case 'addTenant':
                 await vscode.commands.executeCommand(commands.ADD_TENANT);
@@ -207,6 +237,11 @@ export class HomePanel {
 
     private goBack(): void {
         if (this.navigationState.view === 'entity-list') {
+            this.navigationState = { view: 'tenant', tenantId: this.navigationState.tenantId, tenantName: this.navigationState.tenantName };
+        } else if (this.navigationState.view === 'automation' && this.navigationState.automationStep === 'configure') {
+            this.navigationState.automationStep = 'select';
+            this.navigationState.automationTaskId = undefined;
+        } else if (this.navigationState.view === 'automation') {
             this.navigationState = { view: 'tenant', tenantId: this.navigationState.tenantId, tenantName: this.navigationState.tenantName };
         } else if (this.navigationState.view === 'tenant') {
             this.navigationState = { view: 'home' };
@@ -341,7 +376,7 @@ export class HomePanel {
         }
     }
 
-    private async fetchEntities(entityType: EntityType, options?: { offset?: number; limit?: number }): Promise<any[]> {
+    private async fetchEntities(entityType: EntityType, options?: { offset?: number; limit?: number; searchQuery?: string }): Promise<any[]> {
         const tenantId = this.navigationState.tenantId;
         
         // Validate tenant info
@@ -352,7 +387,8 @@ export class HomePanel {
 
         const limit = Math.min(options?.limit || 250, 250); // Enforce max 250
         const offset = options?.offset || 0;
-        const cacheKey = `${tenantId}-${entityType}-${offset}-${limit}`;
+        const searchQuery = options?.searchQuery || this.searchQuery || '';
+        const cacheKey = `${tenantId}-${entityType}-${offset}-${limit}-${searchQuery}`;
         
         if (this.entityCache.has(cacheKey)) {
             return this.entityCache.get(cacheKey)!;
@@ -381,7 +417,20 @@ export class HomePanel {
                 'identities': 'identities',
                 'identity-attributes': undefined,
                 'search-attributes': undefined,
-                'applications': 'applications'
+                'applications': 'applications',
+                'accounts': undefined, // Link-only type
+                'access-history': undefined, // Link-only type
+                'outliers': undefined, // Link-only type
+                'activities': undefined, // Link-only type
+                'entitlements': undefined, // Link-only type
+                'role-insights': undefined, // Link-only type
+                'metadata': undefined, // Link-only type
+                'segments': undefined, // Link-only type
+                'launchers': undefined, // Link-only type
+                'virtual-appliances': undefined, // Link-only type
+                'integrations': undefined, // Link-only type
+                'multi-host-sources': undefined, // Link-only type
+                'credential-providers': undefined // Link-only type
             };
 
             const objectType = objectTypeMap[entityType];
@@ -417,6 +466,180 @@ export class HomePanel {
                         entities = await client.getSearchAttributes(); 
                         // Enforce pagination
                         entities = entities.slice(offset, offset + limit);
+                        break;
+                    case 'accounts':
+                        // Fetch accounts with pagination
+                        const accountsResp = await client.getAccounts({
+                            limit,
+                            offset,
+                            filters: searchQuery ? `name sw "${searchQuery}"` : undefined
+                        });
+                        entities = accountsResp.data || [];
+                        break;
+                    case 'access-history':
+                        // Use Search API for access history (events index)
+                        const { Search } = await import('sailpoint-api-client');
+                        const accessHistorySearch: Search = {
+                            indices: ['events'],
+                            query: {
+                                query: searchQuery || '*'
+                            },
+                            sort: ['-created']
+                        };
+                        const accessHistoryResults = await client.search(accessHistorySearch, limit);
+                        entities = accessHistoryResults.slice(offset, offset + limit);
+                        break;
+                    case 'outliers':
+                        // Use Search API for outliers (search identities with outlier flag)
+                        const { Search: OutlierSearch } = await import('sailpoint-api-client');
+                        const outlierSearch: OutlierSearch = {
+                            indices: ['identities'],
+                            query: {
+                                query: searchQuery ? `name sw "${searchQuery}" AND attributes.outlier:true` : 'attributes.outlier:true'
+                            },
+                            sort: ['name']
+                        };
+                        const outlierResults = await client.search(outlierSearch, limit);
+                        entities = outlierResults.slice(offset, offset + limit);
+                        break;
+                    case 'activities':
+                        // Use Search API for activities (events index with activity type)
+                        const { Search: ActivitySearch } = await import('sailpoint-api-client');
+                        const activitySearch: ActivitySearch = {
+                            indices: ['events'],
+                            query: {
+                                query: searchQuery ? `type:activity AND name sw "${searchQuery}"` : 'type:activity'
+                            },
+                            sort: ['-created']
+                        };
+                        const activityResults = await client.search(activitySearch, limit);
+                        entities = activityResults.slice(offset, offset + limit);
+                        break;
+                    case 'entitlements':
+                        // Fetch entitlements with pagination
+                        const entitlementsResp = await client.getEntitlements({
+                            limit,
+                            offset,
+                            filters: searchQuery ? `name sw "${searchQuery}"` : undefined
+                        });
+                        entities = entitlementsResp.data || [];
+                        break;
+                    case 'segments':
+                        // Fetch segments
+                        const segments = await client.getSegments();
+                        // Apply search filter if provided
+                        let filteredSegments = segments;
+                        if (searchQuery) {
+                            filteredSegments = segments.filter(s => 
+                                (s.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+                            );
+                        }
+                        // Enforce pagination
+                        entities = filteredSegments.slice(offset, offset + limit);
+                        break;
+                    case 'role-insights':
+                        // Use Search API for role insights (search roles with insights)
+                        const { Search: RoleInsightSearch } = await import('sailpoint-api-client');
+                        const roleInsightSearch: RoleInsightSearch = {
+                            indices: ['roles'],
+                            query: {
+                                query: searchQuery ? `name sw "${searchQuery}"` : '*'
+                            },
+                            sort: ['name']
+                        };
+                        const roleInsightResults = await client.search(roleInsightSearch, limit);
+                        entities = roleInsightResults.slice(offset, offset + limit);
+                        break;
+                    case 'metadata':
+                        // Use Search API for metadata (search access profiles and roles with metadata)
+                        const { Search: MetadataSearch } = await import('sailpoint-api-client');
+                        const metadataSearch: MetadataSearch = {
+                            indices: ['accessprofiles', 'roles'],
+                            query: {
+                                query: searchQuery ? `name sw "${searchQuery}" AND accessModelMetadata:*` : 'accessModelMetadata:*'
+                            },
+                            sort: ['name']
+                        };
+                        const metadataResults = await client.search(metadataSearch, limit);
+                        entities = metadataResults.slice(offset, offset + limit);
+                        break;
+                    case 'launchers':
+                        // Fetch all applications and filter for launchers client-side
+                        // Note: applications index is not available in Search API, and type field is not queryable
+                        try {
+                            // Fetch a larger batch to account for filtering
+                            const fetchLimit = Math.min(limit * 10, 2000); // Fetch more to find launchers
+                            const allAppsResp = await client.getPaginatedApplications(
+                                searchQuery ? `name sw "${searchQuery}"` : '',
+                                fetchLimit,
+                                0 // Start from beginning
+                            );
+                            const allApps = allAppsResp.data || [];
+                            console.log(`[HomePanel] Fetched ${allApps.length} applications for launcher filtering`);
+                            
+                            // Log structure of first few apps to understand the data model
+                            if (allApps.length > 0) {
+                                console.log(`[HomePanel] First app structure:`, {
+                                    id: allApps[0].id,
+                                    name: allApps[0].name,
+                                    allKeys: Object.keys(allApps[0]),
+                                    accountSource: allApps[0].accountSource,
+                                    enabled: allApps[0].enabled
+                                });
+                                
+                                // Log a few more to see variations
+                                if (allApps.length > 1) {
+                                    console.log(`[HomePanel] Second app:`, {
+                                        name: allApps[1].name,
+                                        accountSource: allApps[1].accountSource
+                                    });
+                                }
+                                if (allApps.length > 2) {
+                                    console.log(`[HomePanel] Third app:`, {
+                                        name: allApps[2].name,
+                                        accountSource: allApps[2].accountSource
+                                    });
+                                }
+                            }
+                            
+                            // Filter for launcher applications
+                            // Launchers might be identified by:
+                            // - accountSource.type being something specific
+                            // - accountSource.name containing "launch"
+                            // - Some other property
+                            let launchers = allApps.filter((app: any) => {
+                                const accountSource = app.accountSource || {};
+                                const accountSourceType = accountSource.type || '';
+                                const accountSourceName = (accountSource.name || '').toLowerCase();
+                                const appName = (app.name || '').toLowerCase();
+                                
+                                // Check various possible indicators
+                                const isLauncher = 
+                                    accountSourceName.includes('launch') ||
+                                    accountSourceName.includes('launcher') ||
+                                    appName.includes('launcher') ||
+                                    accountSourceType === 'LAUNCHER' ||
+                                    accountSourceType === 'launcher';
+                                
+                                return isLauncher;
+                            });
+                            
+                            console.log(`[HomePanel] Found ${launchers.length} launchers out of ${allApps.length} applications`);
+                            
+                            // If no launchers found, log all unique accountSource types to help identify the pattern
+                            if (launchers.length === 0 && allApps.length > 0) {
+                                const uniqueTypes = new Set(allApps.map((app: any) => app.accountSource?.type || 'N/A'));
+                                const uniqueSourceNames = new Set(allApps.map((app: any) => app.accountSource?.name || 'N/A').slice(0, 20));
+                                console.log(`[HomePanel] No launchers found. Unique accountSource types:`, Array.from(uniqueTypes));
+                                console.log(`[HomePanel] Sample accountSource names:`, Array.from(uniqueSourceNames));
+                            }
+                            
+                            // Apply pagination after filtering
+                            entities = launchers.slice(offset, offset + limit);
+                        } catch (error) {
+                            console.error('[HomePanel] Error fetching launchers:', error);
+                            entities = [];
+                        }
                         break;
                     default: 
                         entities = [];
@@ -457,6 +680,10 @@ export class HomePanel {
             case 'search':
                 content = await this._renderSearchView();
                 breadcrumbs = `<span class="breadcrumb" onclick="goHome()">Home</span><span class="sep">/</span><span class="breadcrumb" onclick="selectTenant('${this.navigationState.tenantId}', '${this.esc(this.navigationState.tenantName || '')}')">${this.esc(this.navigationState.tenantName || '')}</span><span class="sep">/</span><span class="breadcrumb active">Search</span>`;
+                break;
+            case 'automation':
+                content = await this._renderAutomationView();
+                breadcrumbs = `<span class="breadcrumb" onclick="goHome()">Home</span><span class="sep">/</span><span class="breadcrumb" onclick="selectTenant('${this.navigationState.tenantId}', '${this.esc(this.navigationState.tenantName || '')}')">${this.esc(this.navigationState.tenantName || '')}</span><span class="sep">/</span><span class="breadcrumb active">Automation</span>`;
                 break;
             case 'tenant':
                 content = await this._renderTenantView();
@@ -539,6 +766,16 @@ export class HomePanel {
         function globalSearch() { vscode.postMessage({ command: 'globalSearch' }); }
         function openGlobalSearch() { vscode.postMessage({ command: 'globalSearch' }); }
         function newRule() { showLoader('Creating rule...'); vscode.postMessage({ command: 'newRule' }); }
+        function openAutomation() { vscode.postMessage({ command: 'openAutomation' }); }
+        function selectAutomationTask(taskId) { vscode.postMessage({ command: 'selectAutomationTask', taskId: taskId }); }
+        function executeAutomationTask(taskId, config) { showLoader('Executing task...'); vscode.postMessage({ command: 'executeAutomationTask', taskId: taskId, config: config }); }
+        function uploadCSVFile(file) { 
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                vscode.postMessage({ command: 'uploadCSV', fileName: file.name, fileData: e.target.result });
+            };
+            reader.readAsText(file);
+        }
         function handleSearch(event) { if (event.key === 'Enter') { showLoader('Searching...'); vscode.postMessage({ command: 'search', query: event.target.value }); } }
         document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); document.getElementById('searchInput')?.focus(); } });
         
@@ -659,10 +896,13 @@ export class HomePanel {
             {
                 name: 'Identity Management',
                 items: [
-                    { type: 'identity-profiles' as EntityType, label: 'Identity Profiles' },
                     { type: 'identities' as EntityType, label: 'Identities' },
-                    { type: 'identity-attributes' as EntityType, label: 'Identity Attributes' },
-                    { type: 'search-attributes' as EntityType, label: 'Search Attributes' }
+                    { type: 'accounts' as EntityType, label: 'Accounts' },
+                    { type: 'access-history' as EntityType, label: 'Access History' },
+                    { type: 'identity-profiles' as EntityType, label: 'Identity Profiles' },
+                    { type: 'outliers' as EntityType, label: 'Outliers' },
+                    { type: 'governance-groups' as EntityType, label: 'Governance Groups' },
+                    { type: 'activities' as EntityType, label: 'Activities' }
                 ]
             },
             {
@@ -670,7 +910,12 @@ export class HomePanel {
                 items: [
                     { type: 'access-profiles' as EntityType, label: 'Access Profiles' },
                     { type: 'roles' as EntityType, label: 'Roles' },
-                    { type: 'governance-groups' as EntityType, label: 'Governance Groups' }
+                    { type: 'entitlements' as EntityType, label: 'Entitlements' },
+                    { type: 'role-insights' as EntityType, label: 'Role Insights' },
+                    { type: 'applications' as EntityType, label: 'Applications' },
+                    { type: 'metadata' as EntityType, label: 'Metadata' },
+                    { type: 'segments' as EntityType, label: 'Segments' },
+                    { type: 'launchers' as EntityType, label: 'Launchers' }
                 ]
             },
             {
@@ -679,7 +924,11 @@ export class HomePanel {
                     { type: 'sources' as EntityType, label: 'Sources' },
                     { type: 'transforms' as EntityType, label: 'Transforms' },
                     { type: 'rules' as EntityType, label: 'Connector Rules' },
-                    { type: 'service-desk' as EntityType, label: 'Service Desk' }
+                    { type: 'service-desk' as EntityType, label: 'Service Desk' },
+                    { type: 'virtual-appliances' as EntityType, label: 'Virtual Appliances' },
+                    { type: 'integrations' as EntityType, label: 'Integrations' },
+                    { type: 'multi-host-sources' as EntityType, label: 'Multi-Host Sources' },
+                    { type: 'credential-providers' as EntityType, label: 'Credential Providers' }
                 ]
             },
             {
@@ -705,8 +954,12 @@ export class HomePanel {
         
         const entityTypes: { type: EntityType; label: string }[] = categories.flatMap(cat => cat.items);
 
-        // Get counts for all entity types
+        // Get counts for all entity types (skip link-only types)
+        const linkOnlyTypes: EntityType[] = ['accounts', 'access-history', 'outliers', 'activities', 'entitlements', 'role-insights', 'metadata', 'segments', 'launchers', 'virtual-appliances', 'integrations', 'multi-host-sources', 'credential-providers'];
         const counts = await Promise.all(entityTypes.map(async et => {
+            if (linkOnlyTypes.includes(et.type)) {
+                return { type: et.type, count: 0 }; // Link-only types don't have counts in tenant view
+            }
             try { return { type: et.type, count: (await this.fetchEntities(et.type)).length }; }
             catch { return { type: et.type, count: 0 }; }
         }));
@@ -720,6 +973,7 @@ export class HomePanel {
                         <p class="subtitle">${this.esc(this.navigationState.tenantName || '')}.identitynow.com</p>
                     </div>
                     <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="openAutomation()">Automation</button>
                         <button class="btn btn-secondary" onclick="newRule()">New Rule</button>
                         <button class="btn btn-secondary" onclick="openGlobalSearch()">Global Search</button>
                     </div>
@@ -1012,7 +1266,8 @@ export class HomePanel {
         // Fetch entities with pagination (enforced max 250)
         const entities = await this.fetchEntities(entityType, {
             offset: this.entityListPagination.offset,
-            limit: this.entityListPagination.limit
+            limit: this.entityListPagination.limit,
+            searchQuery: this.searchQuery
         });
         
         // Get total count for pagination
@@ -1021,6 +1276,9 @@ export class HomePanel {
             try {
                 const adapterLayer = AdapterLayer.getInstance();
                 const tenantId = this.navigationState.tenantId!;
+                const tenantInfo = this.tenantService.getTenant(tenantId);
+                const client = new ISCClient(tenantId, tenantInfo?.tenantName || '');
+                
                 const objectTypeMap: Record<EntityType, any> = {
                     'sources': 'sources',
                     'transforms': 'transforms',
@@ -1039,10 +1297,91 @@ export class HomePanel {
                     'segments': undefined,
                     'tags': undefined,
                     'identity-attributes': undefined,
-                    'search-attributes': undefined
+                    'search-attributes': undefined,
+                    'accounts': 'accounts',
+                    'access-history': 'access-history',
+                    'outliers': 'outliers',
+                    'activities': 'activities'
                 };
                 const objectType = objectTypeMap[entityType];
-                if (objectType) {
+                const newEntityTypes = ['accounts', 'access-history', 'outliers', 'activities', 'entitlements', 'role-insights', 'metadata', 'segments', 'launchers'];
+                if (objectType && newEntityTypes.includes(entityType)) {
+                    // For new entity types, get count from API
+                    switch (entityType) {
+                        case 'accounts':
+                            const accountsCountResp = await client.getAccounts({
+                                count: true,
+                                limit: 0,
+                                offset: 0,
+                                filters: this.searchQuery ? `name sw "${this.searchQuery}"` : undefined
+                            });
+                            totalCount = Number(accountsCountResp.headers[TOTAL_COUNT_HEADER] || 0);
+                            break;
+                        case 'entitlements':
+                            try {
+                                // Use limit: 1 instead of limit: 0 (similar to getEntitlementCountBySource)
+                                const entitlementsCountResp = await client.getEntitlements({
+                                    count: true,
+                                    limit: 1,
+                                    offset: 0,
+                                    filters: this.searchQuery ? `name sw "${this.searchQuery}"` : undefined
+                                });
+                                // Headers in axios responses - access directly using TOTAL_COUNT_HEADER
+                                const headers = entitlementsCountResp.headers;
+                                totalCount = Number(headers[TOTAL_COUNT_HEADER] || 0);
+                                
+                                // If count is 0 or invalid, but we have entities, there might be an issue
+                                if ((totalCount === 0 || isNaN(totalCount)) && entities.length > 0) {
+                                    // If we got a full page (250), there are definitely more
+                                    if (entities.length >= 250) {
+                                        console.warn('[HomePanel] Entitlements count header returned 0, but have 250+ entities. API may not support count header.');
+                                        // Don't fall back to entities.length - indicate there are more
+                                        totalCount = 250 + 1; // Will show "250+ items"
+                                    } else {
+                                        totalCount = entities.length;
+                                    }
+                                }
+                                
+                                // Log for debugging
+                                console.log(`[HomePanel] Entitlements total count: ${totalCount} (from header: ${headers[TOTAL_COUNT_HEADER]})`);
+                            } catch (error) {
+                                console.error('[HomePanel] Error getting entitlements count:', error);
+                                // Fallback: if we have 250 entities, there are definitely more
+                                totalCount = entities.length >= 250 ? 250 + 1 : entities.length;
+                            }
+                            break;
+                        case 'segments':
+                            const segments = await client.getSegments();
+                            if (this.searchQuery) {
+                                totalCount = segments.filter(s => 
+                                    (s.name || '').toLowerCase().includes(this.searchQuery.toLowerCase())
+                                ).length;
+                            } else {
+                                totalCount = segments.length;
+                            }
+                            break;
+                        case 'launchers':
+                            // For launchers, we need to fetch and filter, so count is approximate
+                            // If we got a full page after filtering, there might be more
+                            totalCount = entities.length >= limit ? limit + 1 : entities.length;
+                            break;
+                        case 'access-history':
+                        case 'outliers':
+                        case 'activities':
+                        case 'role-insights':
+                        case 'metadata':
+                        case 'virtual-appliances':
+                        case 'integrations':
+                        case 'multi-host-sources':
+                        case 'credential-providers':
+                            // For search-based or link-only types, estimate count based on results
+                            // If we got a full page, there might be more
+                            totalCount = entities.length >= 250 ? 250 + 1 : entities.length;
+                            break;
+                        default:
+                            totalCount = entities.length;
+                    }
+                } else if (objectType) {
                     totalCount = await adapterLayer.getObjectCount(tenantId, objectType);
                 } else {
                     totalCount = entities.length; // Fallback
@@ -1053,9 +1392,13 @@ export class HomePanel {
             this.entityListPagination.total = totalCount;
         }
         
-        const filtered = this.searchQuery
-            ? entities.filter(e => (e.name || '').toLowerCase().includes(this.searchQuery.toLowerCase()))
-            : entities;
+        // For new entity types, search is handled in fetchEntities, so no client-side filtering needed
+        const newEntityTypes = ['accounts', 'access-history', 'outliers', 'activities', 'entitlements', 'role-insights', 'metadata', 'segments', 'launchers'];
+        const filtered = (newEntityTypes.includes(entityType))
+            ? entities
+            : (this.searchQuery
+                ? entities.filter(e => (e.name || '').toLowerCase().includes(this.searchQuery.toLowerCase()))
+                : entities);
         const label = this._getEntityLabel(entityType);
         
         const hasMore = (this.entityListPagination.offset + this.entityListPagination.limit) < totalCount;
@@ -1085,12 +1428,12 @@ export class HomePanel {
                         id="entitySearchInput" 
                         placeholder="Search ${label.toLowerCase()}..." 
                         value="${this.esc(this.searchQuery || '')}"
-                        oninput="handleEntitySearch(this.value)"
-                        onkeydown="if(event.key === 'Enter') handleEntitySearch(this.value)"
-                        title="Search filters the currently loaded page. Use Global Search for advanced queries across all resources."
+                        onkeydown="if(event.key === 'Enter') { handleEntitySearch(this.value); }"
+                        onblur="handleEntitySearch(this.value)"
+                        title="Press Enter or click outside to search. Search filters the currently loaded page. Use Global Search for advanced queries across all resources."
                     />
                     ${this.searchQuery ? `<button class="btn btn-small" onclick="clearEntitySearch()" style="margin-left: 8px; padding: 4px 8px; font-size: 12px;">Clear</button>` : ''}
-                    <span class="help-icon" title="Search filters the currently loaded page. Use Global Search for advanced queries across all resources." onclick="showHelp('search.entity')">ℹ️</span>
+                    <span class="help-icon" title="Press Enter or click outside to search. Search filters the currently loaded page. Use Global Search for advanced queries across all resources." onclick="showHelp('search.entity')">ℹ️</span>
                 </div>
                 
                 ${filtered.length > 0 ? `
@@ -1098,22 +1441,174 @@ export class HomePanel {
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th></th>
+                                    ${entityType === 'accounts' ? `
+                                        <th>Account Name</th>
+                                        <th>Source</th>
+                                        <th>Identity</th>
+                                        <th>Status</th>
+                                    ` : entityType === 'access-history' ? `
+                                        <th>Event</th>
+                                        <th>Identity</th>
+                                        <th>Time</th>
+                                        <th>Type</th>
+                                    ` : entityType === 'outliers' ? `
+                                        <th>Identity</th>
+                                        <th>Outlier Type</th>
+                                        <th>Risk Score</th>
+                                    ` : entityType === 'activities' ? `
+                                        <th>Activity</th>
+                                        <th>Identity</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    ` : entityType === 'entitlements' ? `
+                                        <th>Entitlement Name</th>
+                                        <th>Source</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                    ` : entityType === 'role-insights' ? `
+                                        <th>Role Name</th>
+                                        <th>Insight Type</th>
+                                        <th>Status</th>
+                                    ` : entityType === 'metadata' ? `
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Metadata Keys</th>
+                                    ` : entityType === 'segments' ? `
+                                        <th>Segment Name</th>
+                                        <th>Description</th>
+                                        <th>Owner</th>
+                                    ` : entityType === 'launchers' ? `
+                                        <th>Launcher Name</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                    ` : `
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th></th>
+                                    `}
                                 </tr>
                             </thead>
                             <tbody>
-                                ${filtered.map(e => `
-                                    <tr class="table-row" onclick="openEntity('${entityType}', '${e.id}', '${this.esc(e.name || '')}')">
-                                        <td>
-                                            <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
-                                            ${e.description ? `<div class="cell-secondary">${this.esc(e.description.substring(0, 60))}${e.description.length > 60 ? '...' : ''}</div>` : ''}
-                                        </td>
-                                        <td class="cell-meta">${this.esc(e.type || '')}</td>
-                                        <td class="cell-action"><span class="arrow">→</span></td>
-                                    </tr>
-                                `).join('')}
+                                ${filtered.map(e => {
+                                    if (entityType === 'accounts') {
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('${entityType}', '${e.id}', '${this.esc(e.nativeIdentity || e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.nativeIdentity || e.name || 'Unnamed')}</div>
+                                                    ${e.displayName ? `<div class="cell-secondary">${this.esc(e.displayName)}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.source?.name || e.sourceId || '')}</td>
+                                                <td class="cell-meta">${this.esc(e.identity?.name || e.identityId || 'Uncorrelated')}</td>
+                                                <td class="cell-meta">${e.disabled ? '<span style="color: var(--warning);">Disabled</span>' : '<span style="color: var(--success);">Active</span>'}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'access-history') {
+                                        return `
+                                            <tr class="table-row">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.type || e.name || 'Event')}</div>
+                                                    ${e.description ? `<div class="cell-secondary">${this.esc(e.description.substring(0, 60))}${e.description.length > 60 ? '...' : ''}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.identity?.name || e.identityId || '')}</td>
+                                                <td class="cell-meta">${e.created ? new Date(e.created).toLocaleString() : ''}</td>
+                                                <td class="cell-meta">${this.esc(e.type || '')}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'outliers') {
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('identities', '${e.id}', '${this.esc(e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
+                                                    ${e.displayName ? `<div class="cell-secondary">${this.esc(e.displayName)}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.attributes?.outlierType || 'Outlier')}</td>
+                                                <td class="cell-meta">${e.attributes?.riskScore || 'N/A'}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'activities') {
+                                        return `
+                                            <tr class="table-row">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || e.type || 'Activity')}</div>
+                                                    ${e.description ? `<div class="cell-secondary">${this.esc(e.description.substring(0, 60))}${e.description.length > 60 ? '...' : ''}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.identity?.name || e.identityId || '')}</td>
+                                                <td class="cell-meta">${e.created ? new Date(e.created).toLocaleString() : ''}</td>
+                                                <td class="cell-meta">${e.status || 'Completed'}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'entitlements') {
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('${entityType}', '${e.id}', '${this.esc(e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
+                                                    ${e.displayName ? `<div class="cell-secondary">${this.esc(e.displayName)}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.source?.name || e.sourceId || '')}</td>
+                                                <td class="cell-meta">${this.esc(e.type || e.attribute || '')}</td>
+                                                <td class="cell-meta">${e.description ? this.esc(e.description.substring(0, 50)) + (e.description.length > 50 ? '...' : '') : ''}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'role-insights') {
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('roles', '${e.id}', '${this.esc(e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
+                                                    ${e.description ? `<div class="cell-secondary">${this.esc(e.description.substring(0, 60))}${e.description.length > 60 ? '...' : ''}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.insightType || 'Role Insight')}</td>
+                                                <td class="cell-meta">${e.enabled !== false ? '<span style="color: var(--success);">Active</span>' : '<span style="color: var(--warning);">Inactive</span>'}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'metadata') {
+                                        const metadataKeys = e.accessModelMetadata?.attributes ? 
+                                            Object.keys(e.accessModelMetadata.attributes).join(', ') : 
+                                            (e.metadata ? Object.keys(e.metadata).join(', ') : '');
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('${e._type === 'accessprofile' ? 'access-profiles' : 'roles'}', '${e.id}', '${this.esc(e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
+                                                    ${e.description ? `<div class="cell-secondary">${this.esc(e.description.substring(0, 60))}${e.description.length > 60 ? '...' : ''}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e._type === 'accessprofile' ? 'Access Profile' : 'Role')}</td>
+                                                <td class="cell-meta">${this.esc(metadataKeys || 'No metadata')}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'segments') {
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('${entityType}', '${e.id}', '${this.esc(e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
+                                                    ${e.displayName ? `<div class="cell-secondary">${this.esc(e.displayName)}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${e.description ? this.esc(e.description.substring(0, 60)) + (e.description.length > 60 ? '...' : '') : ''}</td>
+                                                <td class="cell-meta">${this.esc(e.owner?.name || e.ownerId || '')}</td>
+                                            </tr>
+                                        `;
+                                    } else if (entityType === 'launchers') {
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('applications', '${e.id}', '${this.esc(e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
+                                                    ${e.description ? `<div class="cell-secondary">${this.esc(e.description.substring(0, 60))}${e.description.length > 60 ? '...' : ''}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.type || 'Launcher')}</td>
+                                                <td class="cell-meta">${e.enabled !== false ? '<span style="color: var(--success);">Active</span>' : '<span style="color: var(--warning);">Inactive</span>'}</td>
+                                            </tr>
+                                        `;
+                                    } else {
+                                        return `
+                                            <tr class="table-row" onclick="openEntity('${entityType}', '${e.id}', '${this.esc(e.name || '')}')">
+                                                <td>
+                                                    <div class="cell-primary">${this.esc(e.name || 'Unnamed')}</div>
+                                                    ${e.description ? `<div class="cell-secondary">${this.esc(e.description.substring(0, 60))}${e.description.length > 60 ? '...' : ''}</div>` : ''}
+                                                </td>
+                                                <td class="cell-meta">${this.esc(e.type || '')}</td>
+                                                <td class="cell-action"><span class="arrow">→</span></td>
+                                            </tr>
+                                        `;
+                                    }
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -1169,6 +1664,532 @@ export class HomePanel {
         `;
     }
 
+    private async _renderAutomationView(): Promise<string> {
+        const { AutomationTasksService } = await import('../../services/AutomationTasks');
+        const automationService = AutomationTasksService.getInstance();
+        const tasks = automationService.getAllTasks();
+        
+        const taskId = this.navigationState.automationTaskId;
+        const step = this.navigationState.automationStep || 'select';
+        
+        if (step === 'configure' && taskId) {
+            return this._renderTaskConfigurationView(taskId);
+        }
+        
+        return `
+            <div class="container">
+                <div class="page-header">
+                    <div>
+                        <h1>Automation</h1>
+                        <p class="subtitle">Execute automated tasks using search queries or CSV files</p>
+                    </div>
+                </div>
+                
+                <section class="section">
+                    <h2 class="section-title">Available Tasks</h2>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Description</th>
+                                    <th>Input Type</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tasks.map(task => `
+                                    <tr class="table-row" onclick="selectAutomationTask('${task.id}')">
+                                        <td>
+                                            <div class="cell-primary">${task.icon} ${this.esc(task.name)}</div>
+                                        </td>
+                                        <td class="cell-secondary">${this.esc(task.description)}</td>
+                                        <td class="cell-meta">
+                                            ${task.inputType === 'both' ? 'Search Query or CSV' : 
+                                              task.inputType === 'search' ? 'Search Query' : 'CSV File'}
+                                        </td>
+                                        <td class="cell-action"><span class="arrow">→</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        `;
+    }
+
+    private async _renderTaskConfigurationView(taskId: string): Promise<string> {
+        const { AutomationTasksService } = await import('../../services/AutomationTasks');
+        const automationService = AutomationTasksService.getInstance();
+        const task = automationService.getTask(taskId);
+        
+        if (!task) {
+            return `
+                <div class="container">
+                    <div class="page-header">
+                        <div>
+                            <h1>Task Not Found</h1>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="goBack()">Go Back</button>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="container">
+                <div class="page-header">
+                    <div>
+                        <h1>${task.icon} ${this.esc(task.name)}</h1>
+                        <p class="subtitle">${this.esc(task.description)}</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="goBack()">Back</button>
+                    </div>
+                </div>
+                
+                <section class="section">
+                    <h2 class="section-title">Input Data</h2>
+                    <div style="margin-bottom: 24px;">
+                        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                            <button class="btn ${task.inputType === 'search' || task.inputType === 'both' ? 'btn-primary' : 'btn-secondary'}" 
+                                    onclick="showSearchInput()" 
+                                    ${task.inputType === 'csv' ? 'disabled' : ''}>
+                                Use Search Query
+                            </button>
+                            <button class="btn ${task.inputType === 'csv' || task.inputType === 'both' ? 'btn-primary' : 'btn-secondary'}" 
+                                    onclick="showCSVInput()"
+                                    ${task.inputType === 'search' ? 'disabled' : ''}>
+                                Upload CSV File
+                            </button>
+                        </div>
+                        
+                        <div id="searchInputSection" style="display: ${task.inputType === 'csv' ? 'none' : 'block'};">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Search Query</label>
+                            <input 
+                                type="text" 
+                                id="taskSearchQuery" 
+                                placeholder="e.g., source.id eq &quot;abc123&quot;" 
+                                style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0);"
+                            />
+                            <button class="btn btn-secondary" onclick="executeTaskSearch()" style="margin-top: 8px;">Search</button>
+                            <div id="searchResults" style="margin-top: 16px;"></div>
+                        </div>
+                        
+                        <div id="csvInputSection" style="display: ${task.inputType === 'search' ? 'none' : 'block'};">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">CSV File</label>
+                            <input 
+                                type="file" 
+                                id="taskCSVFile" 
+                                accept=".csv"
+                                onchange="handleCSVFileSelect(this.files[0])"
+                                style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0);"
+                            />
+                            <div id="csvPreview" style="margin-top: 16px;"></div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="section" id="configSection" style="display: none;">
+                    <h2 class="section-title">Task Configuration</h2>
+                    <form id="taskConfigForm">
+                        ${task.configFields.map(field => {
+                            if (field.name === 'owner') {
+                                // Special handling for owner - identity search
+                                return `
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                                            ${this.esc(field.label)} ${field.required ? '<span style="color: var(--warning);">*</span>' : ''}
+                                        </label>
+                                        <div style="display: flex; gap: 8px;">
+                                            <input 
+                                                type="text" 
+                                                id="ownerSearchInput"
+                                                placeholder="${this.esc(field.placeholder || '')}"
+                                                style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0);"
+                                                onkeydown="if(event.key === 'Enter') { searchOwnerIdentity(); }"
+                                            />
+                                            <button type="button" class="btn btn-secondary" onclick="searchOwnerIdentity()" style="white-space: nowrap;">Search</button>
+                                        </div>
+                                        <input type="hidden" name="${field.name}" id="ownerIdInput" ${field.required ? 'required' : ''} />
+                                        <div id="ownerSearchResults" style="margin-top: 8px;"></div>
+                                        ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: var(--fg-2);">${this.esc(field.helpText)}</div>` : ''}
+                                    </div>
+                                `;
+                            } else if (field.name.includes('Identity') && field.type === 'text') {
+                                // Special handling for identity search fields in approval levels
+                                const fieldId = field.name.replace(/[^a-zA-Z0-9]/g, '');
+                                return `
+                                    <div style="margin-bottom: 16px;" id="${fieldId}Container" style="display: none;">
+                                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                                            ${this.esc(field.label)} ${field.required ? '<span style="color: var(--warning);">*</span>' : ''}
+                                        </label>
+                                        <div style="display: flex; gap: 8px;">
+                                            <input 
+                                                type="text" 
+                                                id="${fieldId}SearchInput"
+                                                placeholder="${this.esc(field.placeholder || '')}"
+                                                style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0);"
+                                                onkeydown="if(event.key === 'Enter') { searchApprovalIdentity('${field.name}'); }"
+                                            />
+                                            <button type="button" class="btn btn-secondary" onclick="searchApprovalIdentity('${field.name}')" style="white-space: nowrap;">Search</button>
+                                        </div>
+                                        <input type="hidden" name="${field.name}" id="${fieldId}IdInput" ${field.required ? 'required' : ''} />
+                                        <div id="${fieldId}SearchResults" style="margin-top: 8px;"></div>
+                                        ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: var(--fg-2);">${this.esc(field.helpText)}</div>` : ''}
+                                    </div>
+                                `;
+                            } else if (field.type === 'text') {
+                                return `
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                                            ${this.esc(field.label)} ${field.required ? '<span style="color: var(--warning);">*</span>' : ''}
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            name="${field.name}" 
+                                            placeholder="${this.esc(field.placeholder || '')}"
+                                            value="${this.esc(field.defaultValue || '')}"
+                                            ${field.required ? 'required' : ''}
+                                            style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0);"
+                                        />
+                                        ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: var(--fg-2);">${this.esc(field.helpText)}</div>` : ''}
+                                    </div>
+                                `;
+                            } else if (field.type === 'textarea') {
+                                return `
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                                            ${this.esc(field.label)} ${field.required ? '<span style="color: var(--warning);">*</span>' : ''}
+                                        </label>
+                                        <textarea 
+                                            name="${field.name}" 
+                                            placeholder="${this.esc(field.placeholder || '')}"
+                                            ${field.required ? 'required' : ''}
+                                            rows="3"
+                                            style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0); font-family: inherit;"
+                                        >${this.esc(field.defaultValue || '')}</textarea>
+                                        ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: var(--fg-2);">${this.esc(field.helpText)}</div>` : ''}
+                                    </div>
+                                `;
+                            } else if (field.type === 'select') {
+                                return `
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                                            ${this.esc(field.label)} ${field.required ? '<span style="color: var(--warning);">*</span>' : ''}
+                                        </label>
+                                        <select 
+                                            name="${field.name}" 
+                                            ${field.required ? 'required' : ''}
+                                            onchange="handleApprovalLevelChange('${field.name}', this.value)"
+                                            style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0);"
+                                        >
+                                            ${field.options?.map(opt => `
+                                                <option value="${this.esc(opt.value)}" ${opt.value === field.defaultValue ? 'selected' : ''}>
+                                                    ${this.esc(opt.label)}
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                        ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: var(--fg-2);">${this.esc(field.helpText)}</div>` : ''}
+                                    </div>
+                                `;
+                            } else if (field.type === 'checkbox') {
+                                return `
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: flex; align-items: center; gap: 8px;">
+                                            <input 
+                                                type="checkbox" 
+                                                name="${field.name}" 
+                                                ${field.defaultValue === 'true' ? 'checked' : ''}
+                                                style="width: auto;"
+                                            />
+                                            <span style="font-weight: 500;">${this.esc(field.label)}</span>
+                                        </label>
+                                        ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: var(--fg-2); margin-left: 24px;">${this.esc(field.helpText)}</div>` : ''}
+                                    </div>
+                                `;
+                            }
+                            return '';
+                        }).join('')}
+                        
+                        <div style="margin-top: 24px;">
+                            <button type="button" class="btn btn-primary" onclick="launchTask('${task.id}')">Launch Task</button>
+                            <button type="button" class="btn btn-secondary" onclick="goBack()" style="margin-left: 8px;">Cancel</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+            
+            <script>
+                let currentInputData = [];
+                
+                function showSearchInput() {
+                    document.getElementById('searchInputSection').style.display = 'block';
+                    document.getElementById('csvInputSection').style.display = 'none';
+                }
+                
+                function showCSVInput() {
+                    document.getElementById('searchInputSection').style.display = 'none';
+                    document.getElementById('csvInputSection').style.display = 'block';
+                }
+                
+                async function executeTaskSearch() {
+                    const query = document.getElementById('taskSearchQuery').value;
+                    if (!query.trim()) {
+                        alert('Please enter a search query');
+                        return;
+                    }
+                    
+                    showLoader('Searching...');
+                    vscode.postMessage({ 
+                        command: 'executeTaskSearch', 
+                        taskId: '${task.id}',
+                        query: query 
+                    });
+                }
+                
+                function handleCSVFileSelect(file) {
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        vscode.postMessage({ 
+                            command: 'uploadCSV', 
+                            taskId: '${task.id}',
+                            fileName: file.name, 
+                            fileData: e.target.result 
+                        });
+                    };
+                    reader.readAsText(file);
+                }
+                
+                async function searchOwnerIdentity() {
+                    const query = document.getElementById('ownerSearchInput').value;
+                    if (!query.trim()) {
+                        alert('Please enter a search query');
+                        return;
+                    }
+                    
+                    showLoader('Searching identities...');
+                    vscode.postMessage({ 
+                        command: 'searchIdentities', 
+                        query: query 
+                    });
+                }
+                
+                function handleApprovalLevelChange(levelField, value) {
+                    // Show/hide governance group field based on selection
+                    const govGroupField = levelField.replace('Level', 'Level') + 'GovGroup';
+                    const govGroupDiv = document.querySelector(\`input[name="\${govGroupField}"], textarea[name="\${govGroupField}"]\`)?.closest('div');
+                    if (govGroupDiv) {
+                        govGroupDiv.style.display = value === 'GOVERNANCE_GROUP' ? 'block' : 'none';
+                    }
+                    
+                    // Show/hide identity field based on selection
+                    const identityField = levelField.replace('Level', 'Level') + 'Identity';
+                    const identityFieldId = identityField.replace(/[^a-zA-Z0-9]/g, '');
+                    const identityContainer = document.getElementById(\`\${identityFieldId}Container\`);
+                    if (identityContainer) {
+                        identityContainer.style.display = value === 'IDENTITY' ? 'block' : 'none';
+                        // Clear selection if hiding
+                        if (value !== 'IDENTITY') {
+                            const idInput = document.getElementById(\`\${identityFieldId}IdInput\`);
+                            const searchInput = document.getElementById(\`\${identityFieldId}SearchInput\`);
+                            const resultsDiv = document.getElementById(\`\${identityFieldId}SearchResults\`);
+                            if (idInput) idInput.value = '';
+                            if (searchInput) searchInput.value = '';
+                            if (resultsDiv) resultsDiv.innerHTML = '';
+                        }
+                    }
+                }
+                
+                async function searchApprovalIdentity(fieldName) {
+                    const fieldId = fieldName.replace(/[^a-zA-Z0-9]/g, '');
+                    const query = document.getElementById(\`\${fieldId}SearchInput\`).value;
+                    if (!query.trim()) {
+                        alert('Please enter a search query');
+                        return;
+                    }
+                    
+                    showLoader('Searching identities...');
+                    vscode.postMessage({ 
+                        command: 'searchIdentities', 
+                        query: query,
+                        fieldName: fieldName
+                    });
+                }
+                
+                function selectApprovalIdentity(fieldName, id, name) {
+                    const fieldId = fieldName.replace(/[^a-zA-Z0-9]/g, '');
+                    document.getElementById(\`\${fieldId}IdInput\`).value = id;
+                    document.getElementById(\`\${fieldId}SearchInput\`).value = name;
+                    document.getElementById(\`\${fieldId}SearchResults\`).innerHTML = \`
+                        <div style="padding: 8px; background: var(--bg-2); border-radius: var(--radius); color: var(--fg-0); font-size: 12px;">
+                            Selected: <strong>\${name}</strong>
+                        </div>
+                    \`;
+                }
+                
+                // Initialize visibility of governance group fields
+                ${task.configFields.filter(f => f.name.includes('GovGroup')).map(f => {
+                    const levelField = f.name.replace('GovGroup', '');
+                    return `
+                        (function() {
+                            const levelSelect = document.querySelector('select[name="${levelField}"]');
+                            if (levelSelect) {
+                                handleApprovalLevelChange('${levelField}', levelSelect.value);
+                            }
+                        })();
+                    `;
+                }).join('')}
+                
+                async function launchTask(taskId) {
+                    const form = document.getElementById('taskConfigForm');
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
+                    
+                    if (currentInputData.length === 0) {
+                        alert('Please provide input data (search query or CSV file)');
+                        return;
+                    }
+                    
+                    // Check owner is selected
+                    const ownerId = document.getElementById('ownerIdInput').value;
+                    if (!ownerId) {
+                        alert('Please search and select an owner identity');
+                        return;
+                    }
+                    
+                    const formData = new FormData(form);
+                    const config = {};
+                    for (const [key, value] of formData.entries()) {
+                        config[key] = value;
+                    }
+                    
+                    // Handle checkboxes
+                    ${task.configFields.filter(f => f.type === 'checkbox').map(f => `
+                        config['${f.name}'] = document.querySelector('input[name="${f.name}"]').checked;
+                    `).join('')}
+                    
+                    // Handle select fields
+                    ${task.configFields.filter(f => f.type === 'select').map(f => `
+                        const ${f.name}Select = document.querySelector('select[name="${f.name}"]');
+                        if (${f.name}Select) {
+                            config['${f.name}'] = ${f.name}Select.value;
+                        }
+                    `).join('')}
+                    
+                    executeAutomationTask(taskId, { inputData: currentInputData, config: config });
+                }
+                
+                // Listen for search results
+                window.addEventListener('message', event => {
+                    const msg = event.data;
+                    if (msg.command === 'taskSearchResults') {
+                        hideLoader();
+                        currentInputData = msg.data || [];
+                        const resultsDiv = document.getElementById('searchResults');
+                        resultsDiv.innerHTML = \`
+                            <div style="padding: 12px; background: var(--bg-2); border-radius: var(--radius);">
+                                <strong>Found \${currentInputData.length} items</strong>
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--fg-2);">
+                                    ${task.inputEntityType === 'entitlements' ? 'Entitlements' : 'Items'} ready for processing
+                                </div>
+                            </div>
+                        \`;
+                        document.getElementById('configSection').style.display = 'block';
+                    } else if (msg.command === 'taskCSVLoaded') {
+                        hideLoader();
+                        currentInputData = msg.data || [];
+                        const previewDiv = document.getElementById('csvPreview');
+                        previewDiv.innerHTML = \`
+                            <div style="padding: 12px; background: var(--bg-2); border-radius: var(--radius);">
+                                <strong>Loaded \${currentInputData.length} rows from CSV</strong>
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--fg-2);">
+                                    Data ready for processing
+                                </div>
+                            </div>
+                        \`;
+                        document.getElementById('configSection').style.display = 'block';
+                    } else if (msg.command === 'identitySearchResults') {
+                        hideLoader();
+                        const results = msg.results || [];
+                        const fieldName = msg.fieldName;
+                        
+                        // Determine which results div to update
+                        if (fieldName === 'owner' || !fieldName) {
+                            // Owner search
+                            const resultsDiv = document.getElementById('ownerSearchResults');
+                            if (results.length === 0) {
+                                resultsDiv.innerHTML = '<div style="padding: 8px; color: var(--fg-2); font-size: 12px;">No identities found</div>';
+                            } else {
+                                resultsDiv.innerHTML = \`
+                                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2);">
+                                        \${results.map(identity => \`
+                                            <div 
+                                                style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s;"
+                                                onmouseover="this.style.background='var(--bg-3)'"
+                                                onmouseout="this.style.background='transparent'"
+                                                onclick="selectOwnerIdentity('\${identity.id}', '\${identity.name.replace(/'/g, "\\\\'")}')"
+                                            >
+                                                <div style="font-weight: 500; color: var(--fg-0);">\${identity.name}</div>
+                                                <div style="font-size: 11px; color: var(--fg-2);">\${identity.id}</div>
+                                            </div>
+                                        \`).join('')}
+                                    </div>
+                                \`;
+                            }
+                        } else {
+                            // Approval level identity search
+                            const fieldId = fieldName.replace(/[^a-zA-Z0-9]/g, '');
+                            const resultsDiv = document.getElementById(\`\${fieldId}SearchResults\`);
+                            if (results.length === 0) {
+                                resultsDiv.innerHTML = '<div style="padding: 8px; color: var(--fg-2); font-size: 12px;">No identities found</div>';
+                            } else {
+                                resultsDiv.innerHTML = \`
+                                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2);">
+                                        \${results.map(identity => \`
+                                            <div 
+                                                style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s;"
+                                                onmouseover="this.style.background='var(--bg-3)'"
+                                                onmouseout="this.style.background='transparent'"
+                                                onclick="selectApprovalIdentity('\${fieldName}', '\${identity.id}', '\${identity.name.replace(/'/g, "\\\\'")}')"
+                                            >
+                                                <div style="font-weight: 500; color: var(--fg-0);">\${identity.name}</div>
+                                                <div style="font-size: 11px; color: var(--fg-2);">\${identity.id}</div>
+                                            </div>
+                                        \`).join('')}
+                                    </div>
+                                \`;
+                            }
+                        }
+                    } else if (msg.command === 'taskExecutionResult') {
+                        hideLoader();
+                        if (msg.result.success) {
+                            alert('Task executed successfully: ' + msg.result.message);
+                            goBack();
+                        } else {
+                            alert('Task failed: ' + msg.result.message + '\\n' + (msg.result.errors || []).join('\\n'));
+                        }
+                    }
+                });
+                
+                function selectOwnerIdentity(id, name) {
+                    document.getElementById('ownerIdInput').value = id;
+                    document.getElementById('ownerSearchInput').value = name;
+                    document.getElementById('ownerSearchResults').innerHTML = \`
+                        <div style="padding: 8px; background: var(--bg-2); border-radius: var(--radius); color: var(--fg-0); font-size: 12px;">
+                            Selected: <strong>\${name}</strong>
+                        </div>
+                    \`;
+                }
+            </script>
+        `;
+    }
+
     private _getEntityLabel(type: string): string {
         const labels: Record<string, string> = {
             'sources': 'Sources', 'transforms': 'Transforms', 'workflows': 'Workflows',
@@ -1177,6 +2198,12 @@ export class HomePanel {
             'governance-groups': 'Governance Groups', 'service-desk': 'Service Desk',
             'identities': 'Identities', 'campaigns': 'Campaigns', 'applications': 'Applications',
             'identity-attributes': 'Identity Attributes', 'search-attributes': 'Search Attributes',
+            'accounts': 'Accounts', 'access-history': 'Access History',
+            'outliers': 'Outliers', 'activities': 'Activities',
+            'entitlements': 'Entitlements', 'role-insights': 'Role Insights',
+            'metadata': 'Metadata', 'segments': 'Segments', 'launchers': 'Launchers',
+            'virtual-appliances': 'Virtual Appliances', 'integrations': 'Integrations',
+            'multi-host-sources': 'Multi-Host Sources', 'credential-providers': 'Credential Providers',
             'source': 'Source', 'transform': 'Transform', 'workflow': 'Workflow',
             'rule': 'Rule', 'access-profile': 'Access Profile', 'role': 'Role',
             'identity': 'Identity', 'identity-profile': 'Identity Profile'
@@ -1489,6 +2516,181 @@ export class HomePanel {
             
             .empty p { color: var(--fg-2); margin-bottom: 16px; }
         `;
+    }
+
+    private async handleExecuteTaskSearch(taskId: string, query: string): Promise<void> {
+        const tenantId = this.navigationState.tenantId;
+        
+        if (!tenantId) {
+            vscode.window.showWarningMessage('Please select a tenant first');
+            return;
+        }
+
+        // Get tenant info to ensure we have the correct tenant name
+        const tenantInfo = this.tenantService.getTenant(tenantId);
+        if (!tenantInfo) {
+            vscode.window.showWarningMessage('Tenant not found');
+            return;
+        }
+
+        // Use tenantName from tenantInfo (should be the API tenant name without spaces)
+        const tenantName = tenantInfo.tenantName || tenantInfo.name;
+
+        try {
+            this._panel.webview.postMessage({ command: 'showLoader', message: 'Searching...' });
+            
+            const { AutomationTasksService } = await import('../../services/AutomationTasks');
+            const automationService = AutomationTasksService.getInstance();
+            const task = automationService.getTask(taskId);
+            
+            if (!task) {
+                throw new Error('Task not found');
+            }
+
+            const results = await automationService.executeSearchQuery(
+                tenantId,
+                tenantName,
+                query,
+                task.inputEntityType || 'entitlements'
+            );
+
+            this._panel.webview.postMessage({
+                command: 'taskSearchResults',
+                data: results
+            });
+        } catch (error: any) {
+            this._panel.webview.postMessage({ command: 'hideLoader' });
+            vscode.window.showErrorMessage(`Search failed: ${error.message}`);
+        }
+    }
+
+    private async handleSearchIdentities(query: string, fieldName?: string): Promise<void> {
+        const tenantId = this.navigationState.tenantId;
+        
+        if (!tenantId) {
+            vscode.window.showWarningMessage('Please select a tenant first');
+            return;
+        }
+
+        try {
+            this._panel.webview.postMessage({ command: 'showLoader', message: 'Searching identities...' });
+            
+            // Use ISCClient search directly instead of SearchService
+            const tenantInfo = this.tenantService.getTenant(tenantId);
+            if (!tenantInfo) {
+                throw new Error('Tenant not found');
+            }
+
+            const client = new ISCClient(tenantId, tenantInfo.tenantName || tenantInfo.name);
+            const { Search } = await import('sailpoint-api-client');
+            
+            const searchPayload: Search = {
+                indices: ['identities'],
+                query: {
+                    query: query
+                },
+                sort: ['name']
+            };
+
+            const searchResults = await client.search(searchPayload, 20);
+            
+            // Convert to format expected by UI
+            const results = searchResults.map((item: any) => ({
+                id: item.id,
+                name: item.name || item.displayName || item.id,
+                _type: 'identity'
+            }));
+            
+            this._panel.webview.postMessage({
+                command: 'identitySearchResults',
+                results: results,
+                fieldName: fieldName
+            });
+        } catch (error: any) {
+            this._panel.webview.postMessage({ command: 'hideLoader' });
+            vscode.window.showErrorMessage(`Identity search failed: ${error.message}`);
+        }
+    }
+
+    private async handleCSVUpload(fileData: string, fileName: string, taskId?: string): Promise<void> {
+        try {
+            this._panel.webview.postMessage({ command: 'showLoader', message: 'Processing CSV...' });
+            
+            const { AutomationTasksService } = await import('../../services/AutomationTasks');
+            const automationService = AutomationTasksService.getInstance();
+            
+            const data = automationService.parseCSV(fileData);
+            
+            this._panel.webview.postMessage({
+                command: 'taskCSVLoaded',
+                data: data
+            });
+        } catch (error: any) {
+            this._panel.webview.postMessage({ command: 'hideLoader' });
+            vscode.window.showErrorMessage(`CSV processing failed: ${error.message}`);
+        }
+    }
+
+    private async handleExecuteAutomationTask(message: any): Promise<void> {
+        const tenantId = this.navigationState.tenantId;
+        
+        if (!tenantId) {
+            vscode.window.showWarningMessage('Please select a tenant first');
+            return;
+        }
+
+        // Get tenant info to ensure we have the correct tenant name
+        const tenantInfo = this.tenantService.getTenant(tenantId);
+        if (!tenantInfo) {
+            vscode.window.showWarningMessage('Tenant not found');
+            return;
+        }
+
+        // Use tenantName from tenantInfo (should be the API tenant name without spaces)
+        const tenantName = tenantInfo.tenantName || tenantInfo.name;
+
+        try {
+            this._panel.webview.postMessage({ command: 'showLoader', message: 'Executing task...' });
+            
+            const { AutomationTasksService } = await import('../../services/AutomationTasks');
+            const automationService = AutomationTasksService.getInstance();
+            const task = automationService.getTask(message.taskId);
+            
+            if (!task) {
+                throw new Error('Task not found');
+            }
+
+            const client = new ISCClient(tenantId, tenantName);
+            const result = await task.execute(
+                client,
+                tenantId,
+                tenantName,
+                message.config.inputData || [],
+                message.config.config || {}
+            );
+
+            this._panel.webview.postMessage({
+                command: 'taskExecutionResult',
+                result: result
+            });
+
+            if (result.success) {
+                vscode.window.showInformationMessage(result.message);
+            } else {
+                vscode.window.showErrorMessage(result.message);
+            }
+        } catch (error: any) {
+            this._panel.webview.postMessage({ command: 'hideLoader' });
+            vscode.window.showErrorMessage(`Task execution failed: ${error.message}`);
+            this._panel.webview.postMessage({
+                command: 'taskExecutionResult',
+                result: {
+                    success: false,
+                    message: error.message,
+                    errors: [error.message]
+                }
+            });
+        }
     }
 
     private esc(str: string): string {

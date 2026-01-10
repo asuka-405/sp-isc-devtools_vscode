@@ -160,10 +160,13 @@ export class TenantTreeItem extends BaseTreeItem {
 			this.tenantName,
 			this.tenantDisplayName,
 			() => [
-				new IdentityProfilesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
 				new IdentitiesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
-				new IdentityAttributesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
-				new SearchAttributesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+				new AccountsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new AccessHistoryTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new IdentityProfilesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new OutliersTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new GovernanceGroupsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new ActivitiesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
 			]
 		));
 		
@@ -175,7 +178,13 @@ export class TenantTreeItem extends BaseTreeItem {
 			this.tenantDisplayName,
 			() => [
 				new AccessProfilesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
-				new RolesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+				new RolesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new EntitlementsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new RoleInsightsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new ApplicationsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new MetadataTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new SegmentsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new LaunchersTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
 			]
 		));
 		
@@ -189,7 +198,11 @@ export class TenantTreeItem extends BaseTreeItem {
 				new SourcesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
 				new TransformsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
 				new RulesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
-				new ServiceDesksTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+				new ServiceDesksTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new VirtualAppliancesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new IntegrationsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new MultiHostSourcesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new CredentialProvidersTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
 			]
 		));
 		
@@ -2118,5 +2131,327 @@ export class CampaignTreeItem extends ISCResourceTreeItem {
 
 	getUrl(): vscode.Uri | undefined {
 		return getUIUrl(this.tenantName, "ui/a/admin/certifications/campaigns-list/all-campaigns", this.id)
+	}
+}
+
+/**
+ * Simple link tree item for Accounts
+ */
+export class AccountsTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Accounts", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "accounts";
+		this.iconPath = new vscode.ThemeIcon("key");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/identities/accounts");
+	}
+}
+
+/**
+ * Simple link tree item for Access History
+ */
+export class AccessHistoryTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Access History", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "access-history";
+		this.iconPath = new vscode.ThemeIcon("history");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/identities/access-history");
+	}
+}
+
+/**
+ * Simple link tree item for Outliers
+ */
+export class OutliersTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Outliers", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "outliers";
+		this.iconPath = new vscode.ThemeIcon("warning");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/identities/outliers");
+	}
+}
+
+/**
+ * Simple link tree item for Activities
+ */
+export class ActivitiesTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Activities", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "activities";
+		this.iconPath = new vscode.ThemeIcon("activity");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/identities/activities");
+	}
+}
+
+/**
+ * Simple link tree item for Governance Groups
+ */
+export class GovernanceGroupsTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Governance Groups", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "governance-groups";
+		this.iconPath = new vscode.ThemeIcon("organization");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/governance-groups");
+	}
+}
+
+/**
+ * Simple link tree item for Entitlements
+ */
+export class EntitlementsTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Entitlements", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "entitlements";
+		this.iconPath = new vscode.ThemeIcon("key");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/entitlements");
+	}
+}
+
+/**
+ * Simple link tree item for Role Insights
+ */
+export class RoleInsightsTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Role Insights", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "role-insights";
+		this.iconPath = new vscode.ThemeIcon("graph");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/role-insights");
+	}
+}
+
+/**
+ * Simple link tree item for Metadata
+ */
+export class MetadataTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Metadata", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "metadata";
+		this.iconPath = new vscode.ThemeIcon("database");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/metadata");
+	}
+}
+
+/**
+ * Simple link tree item for Segments
+ */
+export class SegmentsTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Segments", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "segments";
+		this.iconPath = new vscode.ThemeIcon("symbol-array");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/segments");
+	}
+}
+
+/**
+ * Simple link tree item for Launchers
+ */
+export class LaunchersTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Launchers", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "launchers";
+		this.iconPath = new vscode.ThemeIcon("rocket");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/access/launchers");
+	}
+}
+
+/**
+ * Simple link tree item for Virtual Appliances
+ */
+export class VirtualAppliancesTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Virtual Appliances", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "virtual-appliances";
+		this.iconPath = new vscode.ThemeIcon("server");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/connections/virtual-appliances");
+	}
+}
+
+/**
+ * Simple link tree item for Integrations
+ */
+export class IntegrationsTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Integrations", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "integrations";
+		this.iconPath = new vscode.ThemeIcon("plug");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/connections/integrations");
+	}
+}
+
+/**
+ * Simple link tree item for Multi-Host Sources
+ */
+export class MultiHostSourcesTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Multi-Host Sources", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "multi-host-sources";
+		this.iconPath = new vscode.ThemeIcon("server-process");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/connections/multi-host-sources");
+	}
+}
+
+/**
+ * Simple link tree item for Credential Providers
+ */
+export class CredentialProvidersTreeItem extends BaseTreeItem {
+	constructor(
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+	) {
+		super("Credential Providers", tenantId, tenantName, tenantDisplayName, vscode.TreeItemCollapsibleState.None);
+		this.contextValue = "credential-providers";
+		this.iconPath = new vscode.ThemeIcon("key");
+	}
+
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return [];
+	}
+
+	getUrl(): vscode.Uri | undefined {
+		return getUIUrl(this.tenantName, "ui/a/admin/connections/credential-providers");
 	}
 }
