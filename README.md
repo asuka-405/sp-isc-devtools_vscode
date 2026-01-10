@@ -765,72 +765,141 @@ The extension supports the following settings:
 
 ## Release Notes
 
-### Version 0.0.3
+### Version 0.1.0-alpha
 
-Initial release of SailPoint ISC Dev Tools with comprehensive features:
+First alpha release of SailPoint ISC Dev Tools - A comprehensive development environment for SailPoint Identity Security Cloud.
 
-#### Search & Discovery
-- **Entity List Search**: Real-time search box in all entity list views (identities, roles, access profiles, etc.) for quick filtering
-- **Global Search Page**: Dedicated search interface with SailPoint search query support
-- **Recent Searches**: Quick access to last 5 search queries
-- **Quick Filters**: Pre-built filters for common searches (Modified Today, Active Identities, Privileged Access, etc.)
-- **Clickable Results**: Search results open resources directly
+This extension provides a complete set of tools for managing, developing, and maintaining SailPoint ISC configurations, built on top of the excellent foundation by Yannick Beot's original extension.
 
-#### Multi-Tenant Management
-- **Background Synchronization**: Automatic data refresh for up to 4 active tenants simultaneously
-- **Sync Manager**: Centralized sync state management with health monitoring
-- **State Engine**: In-memory caching of tenant data for fast access
-- **Sync Management UI**: Visual interface to activate/pause tenant synchronization
-- **Sync Status Indicators**: Real-time sync status in tree view with health indicators
+#### 🔍 Search & Discovery
+- **Entity List Search**: Real-time search box in all entity list views (identities, roles, access profiles, etc.) for instant filtering
+- **Global Search Page**: Dedicated search interface with full SailPoint search query syntax support
+- **Recent Searches**: Quick access to your last 5 search queries
+- **Quick Filters**: Pre-built filters for common scenarios (Modified Today/Week, Active/Inactive Identities, Privileged Access, Requestable Roles, Orphan Accounts)
+- **Clickable Results**: Search results are directly clickable and open resources instantly
 
-#### Architecture & Performance
-- **Adapter Layer**: API-agnostic data access layer with intelligent caching
-- **Command Bus**: Centralized command handling with validation
-- **Pagination Support**: Enforced 250-item limit per page for optimal performance
-- **Non-blocking UI**: Asynchronous operations for responsive user experience
+#### 🏢 Multi-Tenant Management
+- **Background Synchronization**: Automatic data refresh for up to 4 active tenants simultaneously (60-second refresh interval)
+- **Sync Manager**: Centralized sync state management with health monitoring and error tracking
+- **State Engine**: In-memory caching of tenant data for lightning-fast access
+- **Sync Management UI**: Visual interface to activate/pause tenant synchronization with one click
+- **Sync Status Indicators**: Real-time sync status in tree view with health indicators (🟢 Active, ⏸️ Paused, 🔴 Error)
 
-#### Contextual Help & User Experience
+#### ⚡ Architecture & Performance
+- **Adapter Layer**: API-agnostic data access layer with intelligent caching and fallback mechanisms
+- **Command Bus**: Centralized command handling with validation and event-driven architecture
+- **Pagination Support**: Enforced 250-item limit per page for optimal performance and API compliance
+- **Non-blocking UI**: Fully asynchronous operations ensuring responsive user experience
+- **Efficient Caching**: Smart caching strategy reduces API calls and improves performance
+
+#### 💡 Contextual Help & User Experience
 - **Help Service**: Comprehensive contextual help system throughout the extension
-- **Tooltips**: Helpful tooltips on buttons, inputs, and UI elements
-- **Help Icons**: Clickable help icons with detailed information
-- **Enhanced Tree Tooltips**: Rich tooltips with sync status and contextual guidance
-- **Documentation Links**: Direct links to SailPoint documentation where applicable
+- **Tooltips**: Helpful tooltips on all buttons, inputs, and UI elements
+- **Help Icons**: Clickable help icons (ℹ️) with detailed information and documentation links
+- **Enhanced Tree Tooltips**: Rich tooltips with sync status, health, and contextual guidance
+- **Documentation Links**: Direct links to official SailPoint documentation where applicable
 
-#### Navigation & Organization
-- **Categorized Navigation**: Organized resource hierarchy with categories (Identity Management, Access Model, etc.)
-- **Improved Tree View**: Enhanced tree structure with sync status indicators
+#### 🧭 Navigation & Organization
+- **Categorized Navigation**: Organized resource hierarchy with logical categories:
+  - Identity Management (Identity Profiles, Identities, Identity Attributes, Search Attributes)
+  - Access Model (Access Profiles, Roles)
+  - Source Management (Sources, Transforms, Workflows, Connector Rules)
+  - And more...
+- **Improved Tree View**: Enhanced tree structure with sync status indicators and icons
 - **Breadcrumb Navigation**: Clear navigation path throughout the extension
+- **Quick Actions**: Fast access to common operations from the home page
 
-#### Data Management
-- **SP-Config Import/Export**: Full support for SailPoint configuration import/export
-- **CSV Import/Export**: Bulk operations for access profiles, roles, and identities
+#### 📦 Data Management & Import/Export
+- **SP-Config Import/Export**: Full support for SailPoint configuration import/export (single file or multiple files)
+- **CSV Import/Export**: Bulk operations for access profiles, roles, identities, accounts, and entitlements
 - **Account Management**: Import/export accounts, uncorrelated accounts, entitlement details
+- **Selective Export**: Choose specific resources to export
+- **Configuration Templates**: Save and reuse common configurations
 
-#### Source & Transform Management
-- **Source Configuration**: View, edit, aggregate, test, peek, ping, clone, or reset sources
-- **Transform Editor**: Create, edit, delete, clone, and test transforms
-- **Transform Snippets**: Quick-create common transform patterns
-- **Schema Management**: View, create, edit, delete source schemas
+#### 🔌 Source & Transform Management
+- **Source Configuration**: Complete source lifecycle management:
+  - View, edit, aggregate, test, peek, ping, clone, or reset sources
+  - Schema discovery and management
+  - Provisioning policy management
+  - Account and entitlement management
+- **Transform Editor**: Full-featured transform management:
+  - Create, edit, delete, clone, and test transforms
+  - Transform evaluation with sample data
+  - Visual transform editor
+- **Transform Snippets**: 30+ code snippets for quick creation of common transform patterns (tr-concat, tr-date-format, tr-lookup, etc.)
+- **Schema Management**: View, create, edit, delete source schemas with attribute mapping
 
-#### Access Management
-- **Access Profiles**: View, edit, create, delete, export, import access profiles
-- **Roles**: View, edit, create, delete, export, import roles and dimensions
+#### 🔐 Access Management
+- **Access Profiles**: Complete access profile lifecycle:
+  - View, edit, create, delete, export, import access profiles
+  - Entitlement management
+  - Approval scheme configuration
+  - Metadata support
+- **Roles**: Comprehensive role management:
+  - View, edit, create, delete, export, import roles
+  - Dimension support for dynamic roles
+  - Membership criteria with SCIM filter syntax
+  - Approval schemes and metadata
 - **Identity Profiles**: View, edit, delete identity profiles and lifecycle states
+- **Identity Refresh**: Trigger identity refresh for identity profiles
 
-#### Workflow & Automation
-- **Workflow Management**: View, edit, enable, disable, export, import workflows
-- **Workflow Execution History**: Track workflow executions
-- **Rule Management**: View, create, edit, delete connector rules
+#### 🔄 Workflow & Automation
+- **Workflow Management**: Complete workflow lifecycle:
+  - View, edit, enable, disable, export, import workflows
+  - Visual workflow editor
+  - Workflow testing with sample data
+- **Workflow Execution History**: Track and monitor workflow executions
+- **Rule Management**: View, create, edit, delete connector rules with script editing
+- **Cloud Rules**: Support for cloud connector rules
 
-#### Additional Features
+#### 📋 Forms & Applications
 - **Forms Management**: View, edit, create, delete, export, import forms
 - **Applications**: View, edit, create, delete applications
-- **Service Desk**: View, edit, delete service desk integrations
-- **Certification Campaigns**: View, report, escalate, send reminders, reassign, approve in bulk
-- **Identity Attributes**: View, edit, create, delete identity and search attributes
+- **Application Configuration**: Manage access profiles and settings for applications
+
+#### 🎯 Identity Management
+- **Identity Viewing**: Search and view identities with detailed information
+- **Identity Attributes**: View, edit, create, delete identity attributes
+- **Search Attributes**: View, edit, create, delete search attribute configurations
+- **Attribute Sync**: Trigger attribute sync and processing
+- **Identity Processing**: Process identities and apply changes
+
+#### 📊 Certification Campaigns
+- **Campaign Management**: View, report, escalate, send reminders for certification campaigns
+- **Bulk Operations**: Reassign to access item owners or based on file
+- **Bulk Approval**: Approve certification items in bulk
+- **Campaign Reports**: Generate detailed campaign reports with CSV export
+
+#### 🛠️ Service Desk & Governance
+- **Service Desk Integrations**: View, edit, delete service desk integrations
+- **Time Check Configuration**: Update time check configuration for service desk
 - **Governance Groups**: Manage governance groups
 
+#### 📝 Code Snippets & Schemas
+- **Transform Snippets**: 30+ snippets for common transform patterns
+- **Schema Snippets**: Quick-create schemas and attributes
+- **Provisioning Policy Snippets**: Templates for provisioning policies
+- **Form Snippets**: Templates for form inputs
+- **JSON Schemas**: Full IntelliSense support with JSON schemas for:
+  - Access Profiles, Roles, Forms
+  - Identity Profiles, Lifecycle States
+  - Provisioning Policies, Source Schemas
+  - And more...
+
+#### 🔗 Integration & Extensibility
+- **URI Handler**: Add tenants via URI scheme
+- **Command Palette Integration**: All features accessible via VS Code command palette
+- **Tree View Integration**: Visual tree view of all resources
+- **Webview Panels**: Rich webview interfaces for editing and viewing resources
+
+#### 🎨 User Interface
+- **Modern Webview UI**: Beautiful, responsive webview interfaces
+- **Dark Mode Support**: Full dark mode support throughout
+- **Keyboard Shortcuts**: Comprehensive keyboard shortcuts
+- **Status Indicators**: Visual status indicators for sync, health, and states
+- **Progress Tracking**: Visual progress indicators for long-running operations
+
 #### Credits
-Built on top of the excellent work by Yannick Beot's [SailPoint Identity Security Cloud extension](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow), enhanced with additional features and improvements.
+Built on top of the excellent work by **Yannick Beot**'s [SailPoint Identity Security Cloud extension](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow). We extend our gratitude to Yannick for creating the foundation that made this enhanced version possible.
 
 ### Unreleased

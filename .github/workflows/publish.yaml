@@ -120,7 +120,7 @@ jobs:
         run: |
           # Add node_modules/.bin to PATH for rimraf (used in prepublish script)
           export PATH="$PWD/node_modules/.bin:$PATH"
-          vsce package --allow-package-secrets sendgrid --out sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix
+          vsce package --allow-package-secrets sendgrid --allow-package-env-file --out sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix
           echo "VSIX package created"
 
       - name: Upload VSIX artifact

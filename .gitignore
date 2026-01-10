@@ -5,3 +5,5 @@ node_modules
 exportedObjects/
 *.zip
 *.vsix
+.env
+.env.*
