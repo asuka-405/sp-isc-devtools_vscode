@@ -763,423 +763,74 @@ The extension supports the following settings:
 - `%o`: Object type
 - `%S`: Source name for source-based report or object name
 
-## Recent Updates
-
-### Version 0.0.2
-
-- **New Search Features**:
-  - Added search box to all entity list views (identities, roles, access profiles, etc.) for real-time filtering
-  - Created dedicated global search page with SailPoint search query support
-  - Added recent searches and quick filters for common search scenarios
-  - Search results are clickable and open resources directly
-- **Architecture Improvements**:
-  - Implemented Sync Manager for background tenant synchronization
-  - Added State Engine for in-memory caching of tenant data
-  - Created Adapter Layer for API-agnostic data access
-  - Implemented Command Bus for centralized command handling
-  - Added pagination support (250 items per page)
-- **UI Enhancements**:
-  - Reorganized navigation hierarchy with categories
-  - Added sync management page for tenant synchronization control
-  - Improved tree view with sync status indicators
-
 ## Release Notes
 
+### Version 0.0.3
+
+Initial release of SailPoint ISC Dev Tools with comprehensive features:
+
+#### Search & Discovery
+- **Entity List Search**: Real-time search box in all entity list views (identities, roles, access profiles, etc.) for quick filtering
+- **Global Search Page**: Dedicated search interface with SailPoint search query support
+- **Recent Searches**: Quick access to last 5 search queries
+- **Quick Filters**: Pre-built filters for common searches (Modified Today, Active Identities, Privileged Access, etc.)
+- **Clickable Results**: Search results open resources directly
+
+#### Multi-Tenant Management
+- **Background Synchronization**: Automatic data refresh for up to 4 active tenants simultaneously
+- **Sync Manager**: Centralized sync state management with health monitoring
+- **State Engine**: In-memory caching of tenant data for fast access
+- **Sync Management UI**: Visual interface to activate/pause tenant synchronization
+- **Sync Status Indicators**: Real-time sync status in tree view with health indicators
+
+#### Architecture & Performance
+- **Adapter Layer**: API-agnostic data access layer with intelligent caching
+- **Command Bus**: Centralized command handling with validation
+- **Pagination Support**: Enforced 250-item limit per page for optimal performance
+- **Non-blocking UI**: Asynchronous operations for responsive user experience
+
+#### Contextual Help & User Experience
+- **Help Service**: Comprehensive contextual help system throughout the extension
+- **Tooltips**: Helpful tooltips on buttons, inputs, and UI elements
+- **Help Icons**: Clickable help icons with detailed information
+- **Enhanced Tree Tooltips**: Rich tooltips with sync status and contextual guidance
+- **Documentation Links**: Direct links to SailPoint documentation where applicable
+
+#### Navigation & Organization
+- **Categorized Navigation**: Organized resource hierarchy with categories (Identity Management, Access Model, etc.)
+- **Improved Tree View**: Enhanced tree structure with sync status indicators
+- **Breadcrumb Navigation**: Clear navigation path throughout the extension
+
+#### Data Management
+- **SP-Config Import/Export**: Full support for SailPoint configuration import/export
+- **CSV Import/Export**: Bulk operations for access profiles, roles, and identities
+- **Account Management**: Import/export accounts, uncorrelated accounts, entitlement details
+
+#### Source & Transform Management
+- **Source Configuration**: View, edit, aggregate, test, peek, ping, clone, or reset sources
+- **Transform Editor**: Create, edit, delete, clone, and test transforms
+- **Transform Snippets**: Quick-create common transform patterns
+- **Schema Management**: View, create, edit, delete source schemas
+
+#### Access Management
+- **Access Profiles**: View, edit, create, delete, export, import access profiles
+- **Roles**: View, edit, create, delete, export, import roles and dimensions
+- **Identity Profiles**: View, edit, delete identity profiles and lifecycle states
+
+#### Workflow & Automation
+- **Workflow Management**: View, edit, enable, disable, export, import workflows
+- **Workflow Execution History**: Track workflow executions
+- **Rule Management**: View, create, edit, delete connector rules
+
+#### Additional Features
+- **Forms Management**: View, edit, create, delete, export, import forms
+- **Applications**: View, edit, create, delete applications
+- **Service Desk**: View, edit, delete service desk integrations
+- **Certification Campaigns**: View, report, escalate, send reminders, reassign, approve in bulk
+- **Identity Attributes**: View, edit, create, delete identity and search attributes
+- **Governance Groups**: Manage governance groups
+
+#### Credits
+Built on top of the excellent work by Yannick Beot's [SailPoint Identity Security Cloud extension](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow), enhanced with additional features and improvements.
+
 ### Unreleased
-
-### 1.3.23
-
-- Add `dimensional` flag and attributes for dimention for role import and export
-- Add support for metadata when importing or exporting Roles
-- Roles can be updated when importing a CSV (cf. [#84](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/84))
-- Access Profiles can be updated when importing a CSV (cf. [#84](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/84))
-- Add support for metadata when importing or exporting Access Profiles
-- Import/Export of dimensions for dimensional roles
-- Edit org settings
-- Update to use V2025 by default. Not all endpoints have been updated.
-- Fix issue with Access Profile & Entitlement Pie Chart of a campaign (cf. [#125](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/125))
-- Remove the cloning of password when cloning a source
-
-### 1.3.22
-
-- Command to clone a transform
-- Cloning a source now clones the encrypted credentials.
-- Issue Attribute Sync Config export in multiple files if the source have been deleted (cf. [#123](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/123))
-
-### 1.3.21
-
-- Semantic errors do not display cause (cf. [#122](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/122))
-- When exporting lifecycle states in multiple files, the name of the lifecycle state is prefixed with the name of the identity profile
-
-### 1.3.20
-
-- Add "Open in Web UI" command (cf. [#15](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/15))
-- Add "Edit email settings" command for a tenant
-- New command to evaluate transform in the cloud (cf. [#32](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/32))
-- Include `input` in the template for substring transform
-
-### 1.3.19
-
-- Issue with missing role entitlements from campaign status report by [@mostafa-helmy-sp](https://github.com/mostafa-helmy-sp) (cf. [#120](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/120))
-- Support recent enhancements to role assignment criteria (cf. [#119](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/119))
-- Include `input` in the template for lookup transform
-
-### 1.3.18
-
-- Updated the SailPoint SDK (sailpoint-api-client) from v1.4.15 to v1.6.2 by [@mostafa-helmy-sp](https://github.com/mostafa-helmy-sp) (cf. [#118](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/118))
-- Updated certification campaign commands to use V2025 APIs by [@mostafa-helmy-sp](https://github.com/mostafa-helmy-sp) (cf. [#118](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/118))
-- Add status in the list of workflow executions
-- Add logger class for SAP HR
-- Issue with duplicate review summaries when reassigning to access owners by [@mostafa-helmy-sp](https://github.com/mostafa-helmy-sp) (cf. [#118](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/118)) (SAASTRIAGE-7886)
-- Fix path matching for identities that prevented from saving public identities config
-
-### 1.3.17
-
-- New command to import account without optimization
-- Remove aggregation commands from delimited files
-
-### 1.3.16
-
-- Issue when policy provisioning name is empty (cf. [#113](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/113)).
-- Can choose forms to export or import
-- Support bulk approval in certification campaign by [@mostafa-helmy-sp](https://github.com/mostafa-helmy-sp) (cf. [#115](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/115))
-- Enhance performance and progress report for certification reassignment (owner and custom) by [@mostafa-helmy-sp](https://github.com/mostafa-helmy-sp) (cf. [#115](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/115))
-
-### 1.3.15
-
-- Can upload entitlements for a Delimited file
-- Can upload a configuration to Configuration Hub
-- Support for folders in the tree view
-- Add external API: other extension can call a predefined set of method
-
-### 1.3.14
-
-- When exporting roles through SP-Config, it's possible to choose which selectively.
-- Allow number in schema name
-- Issue with special characters when exporting config to multiple files (cf. [#108](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/108))
-
-### 1.3.13
-
-- Add a new command to update the Time Check Configuration for Service Desk Integrations on the "Service Desk" node
-- Add support for Connector Rule and Cloud Rule support (cf. [#104](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/104))
-- Add new icon for applications
-- Can add several access profiles at once in an application
-- Upgrade sailpoint-api-client dependency to 1.4.15
-- Refactoring of access review reassignment
-- Refresh of Access Profiles after adding applications
-- Reassignment of access review to access owner was failing in case of self-reassignment
-- Could not modify an app if an app was disabled in the request center
-
-### 1.3.12
-
-- Typo in source reset information message (cf. [#105](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/105))
-- When exporting form definitions, the property usedBy is emptied
-- Forms with same id between tenant was causing an error
-
-### 1.3.11
-
-- During tenant creation, if the FQDN was not correctly entered, it generates an error. If the FQDN is not resolved, the error is not retryable. (cf. [#103](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/103))
-
-### 1.3.10
-
-- Fix issue when enabling log
-
-### 1.3.9
-
-- List all transforms instead of the first 250 (cf. [#96](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/96))
-- Error thrown when workflows have the same id in 2 different tenants (cf. [#101](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/101))
-
-### 1.3.8
-
-- Viewing a workflow does not bring statistics as this can cause timeouts.
-- Support of certifications with the help of [@mostafa-helmy-sp](https://github.com/mostafa-helmy-sp) and [@bassem-mohamed-sp](https://github.com/bassem-mohamed-sp):
-  - Dashboard
-  - Escalation
-  - Reminders
-  - Report
-  - Automatic reassignment to access item owners
-  - Custom reassignment
-- Fix axios-retry not working
-
-### 1.3.7
-
-- Removed filtering on sources since CC API is decommissioned
-
-### 1.3.6
-
-- Restore command to add new Search Attribute Configuration
-
-### 1.3.5
-
-- Changed axios interceptor for better error management (cf. [#92](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/92))
-
-### 1.3.4
-
-- Fix authentication provider multi account support (as part of [VSCode September's release](https://code.visualstudio.com/updates/v1_94#_change-an-extensions-account-preference)) (cf. [#94](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/94))
-
-### 1.3.3
-
-- Add User Agent
-- Add transform evaluation support for `decomposeDiacriticalMarks` (cf. [#90](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/90)) by [@Semperverus](https://github.com/Semperverus)
-- Add new command to enable logging
-- Fixed dependency (axios, micromatch)
-- Refactored code due to [#36](https://github.com/sailpoint-oss/typescript-sdk/issues/36)
-- Removed Workflow Tester view due to webview-ui-toolkit deprecation (cf. https://github.com/microsoft/vscode-webview-ui-toolkit/issues/561)
-- Add support for Applications
-- Error with session management (cf. [#93](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/93))
-
-### 1.3.2
-
-- Updated schema for lifecycle state (`identityState`)
-- Filtering server-side for uncorrelated accounts
-- Added transforms "RFC5646" and "Display Name" (cf. [#87](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/87))
-- Add validation of read-only during SP-Config import
-- Can create or delete an identity attribute (cf. [#83](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/83))
-- Fixed issue during the account reset (cf. [#85](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/85))
-
-### 1.3.1
-
-- 429 Too Many Requests error during export or import of roles and access profiles (cf. [#82](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/82))
-- Role and Access Profile imports are now cancellable
-
-### 1.3.0
-
-- Update for source aggregation and reset to leverage beta endpoints instead of CC endpoints
-- Add searching and viewing identities by [@henrique-quintino-sp](https://github.com/henrique-quintino-sp) (cf. [#74](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/74))
-- Add attribute sync, process and delete command on identities by [@henrique-quintino-sp](https://github.com/henrique-quintino-sp) (cf. [#74](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/74))
-- Fixed normalizeNames (cf. [#73](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/73))
-- Lock tenant as read-only to prevent any change (cf. [#75](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/75) and [#81](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/81))
-- Fixed with generate digit token to use the username and not the account name
-- Automatically update workflow if its status is changed
-- Fixed case where a single entitlement or single access profiles is returned during role creation
-
-### 1.2.0
-
-- Add new command to edit connector rule (Edit script)
-- Changing IdentityNow to Identity Security Cloud/ISC
-- Logging every call to ISC
-- Catch error message if peek objects fails
-
-### 1.1.0
-
-- Edit Password Org Config
-- Generate a digit token for password reset
-- 404 error when sources had '/' in their name (cf. [#71](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/71))
-
-### 1.0.4
-
-- New attempt to publish extension
-- Refactoring of IdentityNowTreeItem.ts and fixed refreshing issue with Workflows
-- Non-matching schema for lifecycle states
-
-### 1.0.3
-
-- Publication issue
-
-### 1.0.2
-
-- Could not open Identity Attributes from several tenants (cf. [#69](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/69))
-
-### 1.0.1
-
-- Transform not correctly saved (cf. [#68](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/68))
-
-### 1.0.0
-
-- Import/Export entitlements for roles
-
-### 0.0.30
-
-- Add support for Search attribute config (cf. [#64](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/64))
-- Add support for Identity Attributes
-
-### 0.0.29
-
-- Display warning if file is too big (cf. [#66](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/66))
-- Export/Import workflows (cf. [#57](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/57))
-- Edit Public Identities Config
-- Edit Access Request Configuration
-- Can export everything with SP-Config (cf. [#56](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/56))
-- Can select cloud rules for export with SP-Config
-- Add IDENTITY_OBJECT_CONFIG as an importable object from SP-Config
-
-### 0.0.28
-
-- Add support for Forms
-- Clone a source (cf. [#60](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/60))
-
-### 0.0.27
-
-- Export of roles and access profiles without owner
-- Fix pagination during export of roles and access
-
-### 0.0.26
-
-- Add the command "Ping Cluster" on sources by [@henrique-quintino-sp](https://github.com/henrique-quintino-sp) (cf. [#61](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/61))
-- Export of roles was failing due to 1-level Membership Criteria
-- Pagination during export
-- In some unknown condition, source may not have a name. In such case, the source is filtered
-
-### 0.0.25
-
-- Add test connection (cf. [#58](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/58))
-- Add peek objects on a source (cf. [#59](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/59))
-
-### 0.0.24
-
-- View, edit, create, delete, export, import access profiles with the help of [@richastral](https://github.com/richastral) (cf. [#55](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/55))
-- View, edit, create, delete, export, import roles with the help of [@richastral](https://github.com/richastral) (cf. [#55](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/55))
-- Upgrade sailpoint-api-client dependency
-- Honor delimiter parameter for account export
-- Add better error message when resetting a source fails (cf. [#54](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/54))
-
-### 0.0.23
-
-- Issue when importing SP-Config: when selecting items, the list of object Ids was not properly sent
-- Issue when refreshing identities of an identity profile (cf. [#53](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/53))
-
-### 0.0.22
-
-- Provide the ability to create provisioning policy for something else than the CREATE policy (cf. [#29](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/29))
-- Issue when creating a provisioning policy (cf. [#52](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/52))
-
-### 0.0.21
-
-- Revert bundle (cf. [#51](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/51))
-
-### 0.0.20
-
-- Issue with fetch (cf. [#50](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/50))
-- Remove dependency to client-oauth2, isomorphic-fetch, isomorphic-form-data
-- Relies on axios and sailpoint-api-client wherever it is possible
-- Better error management for SPConfig import and object type displayed for import
-- Workflow icon not properly updated after enabling or disabling the workflow
-
-### 0.0.19
-
-- New command: Aggregation of entitlements
-- Settings for export path, including SP Config
-- New command: Export of accounts
-- New command: Export of uncorrelated accounts
-- New command: Export of entitlement details
-- New command: Import of accounts
-- New command: Import of uncorrelated accounts
-- New command: Import of entitlement details
-- Better error management of SPConfig Import and message info
-- List transforms by name while exporting SP-Config
-
-### 0.0.18
-
-- Export was not creating folders recursively
-- Update schema for identity profiles, life cycle states, and provisioning policies
-- Update regexp for tenant name for short names
-
-### 0.0.17
-
-- Update length limit for connector rule names and provisioning policy name
-- Update regexp for tenant name
-- Fix TLS error when trying to get an access token
-
-### 0.0.16
-
-Almost Christmas!
-
-- Capability to export a single source, rule, transform or identity profile from the tree view
-- Capability to refine export from the command palette or from a tenant in the tree view
-- Capability to import a sp-config
-- Can refresh identities under an identity profile (cf. [#30](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/30))
-- Fix error when exporting to file (cf. [#35](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/35))
-
-### 0.0.15
-
-- Add supports for Service Desk Integrations ([@fernando-delosrios-sp](https://github.com/fernando-delosrios-sp))
-- Fix supports of UTF-8 values in transform (cf. [#33](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/33))
-
-### 0.0.14
-
-- Add 2 commands for sources: reset accounts and reset entitlements
-- Add support for Identity Profiles
-- Pagination for sources (cf. [#25](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/25))
-
-### 0.0.13
-
-- Regression on transform evaluation (cf. [#20](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/20))
-
-### 0.0.12
-
-- Possibility to add a tenant with an access token (cf. [#18](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/18))
-- The extension have an URI handler (cf. [#17](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/17)). If a URL with the following format is called in the system, a tenant is added or updated: vscode://yannick-beot-sp.vscode-sailpoint-identitynow/addtenant?tenantName=XXX&accessToken=eyJh...&authenticationMethod=AccessToken
-
-### 0.0.11
-
-- Can rename tenant display name (cf. [#12](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/12))
-
-### 0.0.9
-
-- Support for connector rules: creation, deletion, update, export, import
-- Aggregation without optimization was not working properly
-
-### 0.0.8
-
-Transforms for ever!
-
-- New transforms (E.164 Phone, Random Alphanumeric Random Numeric, Replace All, Rule, UUID Generator), cf. [#8](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/8)
-- [#6](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/issues/6) update regexp for transform names
-
-### 0.0.7
-
-Transforms are the best!
-
-Added:
-
-- Add step to creation of transform to have a non-empty file
-- If only 1 tenant, automatically selected in the workflow tester
-- Added refresh buttons in the view
-- Add the capacity to evaluate transforms [#7](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/pull/7) thanks to [@cristian-grau-sp](https://github.com/cristian-grau-sp)
-
-### 0.0.6
-
-Fixed:
-
-- Regexp for provisioning policy
-- Issue #3 with new transform
-
-### 0.0.5
-
-Fixed:
-
-- Regexp for tenant, with or without domain
-- Remove PAT when removing tenant
-
-### 0.0.4
-
-- Fix regexp for PAT secret
-
-### 0.0.3
-
-Workflows for ever!
-
-- Export of tenant config
-- Add support for workflows
-- Add workflow tester
-
-### 0.0.2
-
-Let's make transform great again!
-
-- Add support for source schemas
-- Add support for provision policies
-- Add schema and snippets for source schemas
-- Add schema and snippets for provisioning policies
-- Add snippets for transforms
-
-### 0.0.1
-
-Initial internal release
-
-- Add tenant with Personal Access Token (PAT) authentication
-- Remove tenant
-- Open Sources and Transforms
-- Save Sources and Transforms
-- Create Transform
-- Remove Transform
