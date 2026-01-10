@@ -150,38 +150,13 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: Install vsce
-        run: npm install -g @vscode/vsce
-
-      - name: Download VSIX artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: extension-vsix
-          path: .
-
-      - name: Setup environment for publishing
-        run: |
-          # Add node_modules/.bin to PATH for rimraf (used in prepublish script)
-          echo "PATH=$GITHUB_WORKSPACE/node_modules/.bin:$PATH" >> $GITHUB_ENV
-          # Verify rimraf is available
-          if [ -f "$GITHUB_WORKSPACE/node_modules/.bin/rimraf" ]; then
-            echo "✓ rimraf found"
-          else
-            echo "⚠ rimraf not found in node_modules/.bin"
-          fi
-
-      - name: Checkout source for publishing
-        uses: actions/checkout@v4
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-
-      - name: Install dependencies for publishing
+      - name: Install dependencies
         run: |
           npm ci
           npm run postinstall || true
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
 
       - name: Publish to VS Code Marketplace
         run: |
