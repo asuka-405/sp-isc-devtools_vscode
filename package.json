@@ -2,7 +2,7 @@
   "name": "sp-isc-devtools",
   "displayName": "SailPoint ISC Dev Tools",
   "description": "Accelerate development of SailPoint ISC by providing tools for managing tenants, sources, transforms, and more. Built on top of the excellent work by Yannick Beot's SailPoint Identity Security Cloud extension.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "ArchMedia",
   "icon": "resources/isc.png",
   "bugs": {

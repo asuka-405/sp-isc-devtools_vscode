@@ -1,4 +1,7 @@
-# SailPoint ISC Dev Tools for Visual Studio Code
+<div align="center">
+  <img src="resources/isc.png" alt="SailPoint ISC Dev Tools" width="128" height="128">
+  <h1>SailPoint ISC Dev Tools for Visual Studio Code</h1>
+</div>
 
 > This extension is not developed, maintained or supported by SailPoint.
 > It is a community effort to help manage Identity Security Cloud from Visual Studio Code.
@@ -764,6 +767,11 @@ The extension supports the following settings:
 - `%S`: Source name for source-based report or object name
 
 ## Release Notes
+
+### Version 0.1.2
+
+- **Documentation Updates**: Added logo to README for better visual branding
+- **Website Migration**: Website moved to separate repository for independent deployment
 
 ### Version 0.1.1
 
