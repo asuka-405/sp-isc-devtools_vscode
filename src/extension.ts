@@ -108,6 +108,10 @@ import { CredentialsManagerPanel } from './webviews/credentials-manager/Credenti
 import { RuleEditorPanel } from './webviews/rule-editor/RuleEditorPanel';
 import { WorkflowEditorPanel } from './webviews/workflow-editor/WorkflowEditorPanel';
 import { BeanShellService } from './services/beanshell/BeanShellService';
+import { SyncManager } from './services/SyncManager';
+import { StateEngine } from './services/StateEngine';
+import { AdapterLayer } from './services/AdapterLayer';
+import { CommandBus } from './services/CommandBus';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -119,12 +123,50 @@ export function activate(context: vscode.ExtensionContext) {
 
 	SailPointISCAuthenticationProvider.initialize(tenantService);
 
-	// Initialize new services
+	// Initialize core architecture services (in order)
+	const syncManager = SyncManager.initialize(tenantService);
+	const stateEngine = StateEngine.initialize(syncManager, tenantService);
+	const adapterLayer = AdapterLayer.initialize(stateEngine, syncManager, tenantService);
+	const commandBus = CommandBus.initialize(syncManager);
+
+	// Initialize existing services
 	LocalCacheService.initialize(context);
 	CommitService.initialize(tenantService, context);
 	SearchService.initialize(tenantService, context);
 	GitService.initialize(tenantService, context);
 	BeanShellService.initialize(context);
+
+	// Setup tenant lifecycle hooks for sync manager
+	tenantService.registerObserver(TenantServiceEventType.updateTree, {
+		update: async (event: any) => {
+			// When tenants are added/removed, update sync manager
+			const tenants = tenantService.getTenants();
+			const registeredTenantIds = syncManager.getAllSyncInfo().map(info => info.tenantId);
+			
+			// Register new tenants
+			for (const tenant of tenants) {
+				if (!registeredTenantIds.includes(tenant.id)) {
+					syncManager.registerTenant(tenant.id);
+				}
+			}
+			
+			// Unregister removed tenants
+			for (const tenantId of registeredTenantIds) {
+				if (!tenants.find(t => t.id === tenantId)) {
+					syncManager.unregisterTenant(tenantId);
+				}
+			}
+		}
+	});
+
+	// Cleanup on deactivation
+	context.subscriptions.push({
+		dispose: () => {
+			syncManager.dispose();
+			stateEngine.dispose();
+			commandBus.dispose();
+		}
+	});
 
 	// Register Home Panel command
 	context.subscriptions.push(
@@ -137,6 +179,17 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand(commands.OPEN_CREDENTIALS_MANAGER, () => {
 			CredentialsManagerPanel.createOrShow(context.extensionUri, tenantService, context);
+		})
+	);
+
+	// Register Sync Management command (opens in Home Panel)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.OPEN_SYNC_MANAGEMENT, () => {
+			HomePanel.createOrShow(context.extensionUri, tenantService);
+			// Navigate to sync management view (will be handled by HomePanel)
+			if (HomePanel.currentPanel) {
+				HomePanel.currentPanel.navigateToSyncManagement();
+			}
 		})
 	);
 
@@ -211,7 +264,21 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand(commands.REFRESH_FORCED, iscTreeDataProvider.forceRefresh, iscTreeDataProvider),
-		vscode.commands.registerCommand(commands.REFRESH, iscTreeDataProvider.refresh, iscTreeDataProvider))
+		vscode.commands.registerCommand(commands.REFRESH, iscTreeDataProvider.refresh, iscTreeDataProvider));
+
+	// Listen to sync state changes and refresh tree
+	syncManager.on('syncStateChanged', () => {
+		iscTreeDataProvider.refresh();
+	});
+	syncManager.on('syncError', () => {
+		iscTreeDataProvider.refresh();
+	});
+	syncManager.on('tenantRegistered', () => {
+		iscTreeDataProvider.refresh();
+	});
+	syncManager.on('tenantUnregistered', () => {
+		iscTreeDataProvider.refresh();
+	});
 
 	const transformEvaluator = new TransformEvaluator(tenantService);
 	const treeManager = new TreeManager(tenantService, transformEvaluator);
@@ -720,13 +787,31 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register new commands for enhanced functionality
 
-	// Global Search
+	// Global Search - Opens search page in HomePanel
 	context.subscriptions.push(
 		vscode.commands.registerCommand('sp-isc-devtools.global-search', async (tenantTreeItem: any) => {
-			if (tenantTreeItem?.tenantId) {
-				await SearchService.getInstance().showSearchQuickPick(tenantTreeItem.tenantId);
-			} else {
-				vscode.window.showWarningMessage('Please select a tenant first');
+			// Open HomePanel and navigate to search
+			HomePanel.createOrShow(context.extensionUri, tenantService);
+			
+			if (HomePanel.currentPanel) {
+				if (tenantTreeItem?.tenantId) {
+					HomePanel.currentPanel.navigateToSearch(
+						tenantTreeItem.tenantId,
+						tenantTreeItem.tenantName
+					);
+				} else {
+					// Try to get first tenant or show message
+					const tenants = tenantService.getTenants();
+					if (tenants.length > 0) {
+						const firstTenant = tenants[0];
+						HomePanel.currentPanel.navigateToSearch(
+							firstTenant.id,
+							firstTenant.name
+						);
+					} else {
+						vscode.window.showWarningMessage('Please add a tenant first');
+					}
+				}
 			}
 		}));
 

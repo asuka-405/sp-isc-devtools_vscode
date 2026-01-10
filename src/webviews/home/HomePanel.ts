@@ -3,17 +3,22 @@ import { TenantService } from '../../services/TenantService';
 import { TenantInfo } from '../../models/TenantInfo';
 import { ISCClient } from '../../services/ISCClient';
 import { LocalCacheService } from '../../services/cache/LocalCacheService';
+import { SyncManager } from '../../services/SyncManager';
+import { AdapterLayer } from '../../services/AdapterLayer';
 import * as commands from '../../commands/constants';
 
 type EntityType = 'sources' | 'transforms' | 'workflows' | 'identity-profiles' | 'rules' | 
                   'access-profiles' | 'roles' | 'forms' | 'governance-groups' | 'campaigns' |
-                  'service-desk' | 'notification-templates' | 'segments' | 'tags';
+                  'service-desk' | 'notification-templates' | 'segments' | 'tags' | 
+                  'identities' | 'identity-attributes' | 'search-attributes' | 'applications';
 
 interface NavigationState {
-    view: 'home' | 'tenant' | 'entity-list';
+    view: 'home' | 'tenant' | 'entity-list' | 'sync-management' | 'search';
     tenantId?: string;
     tenantName?: string;
     entityType?: EntityType;
+    searchQuery?: string;
+    searchResults?: any[];
 }
 
 export class HomePanel {
@@ -27,6 +32,7 @@ export class HomePanel {
     private entityCache: Map<string, any[]> = new Map();
     private searchQuery: string = '';
     private recentItems: { type: string; name: string; tenantId: string; id: string; timestamp: number }[] = [];
+    private entityListPagination: { offset: number; limit: number; total?: number } = { offset: 0, limit: 250 };
 
     public static createOrShow(
         extensionUri: vscode.Uri,
@@ -88,19 +94,50 @@ export class HomePanel {
                 await vscode.commands.executeCommand(commands.ADD_TENANT);
                 await this._update();
                 break;
+            case 'pauseSync':
+                await this.handlePauseSync(message.tenantId);
+                break;
+            case 'resumeSync':
+                await this.handleResumeSync(message.tenantId);
+                break;
+            case 'refreshSyncStatus':
+                await this._update();
+                break;
+            case 'entityListPreviousPage':
+                if (this.entityListPagination.offset > 0) {
+                    this.entityListPagination.offset = Math.max(0, this.entityListPagination.offset - this.entityListPagination.limit);
+                    this.entityListPagination.total = undefined; // Reset to recalculate
+                    await this._update();
+                }
+                break;
+            case 'entityListNextPage':
+                this.entityListPagination.offset += this.entityListPagination.limit;
+                this.entityListPagination.total = undefined; // Reset to recalculate
+                await this._update();
+                break;
+            case 'refreshEntityList':
+                this.entityListPagination.offset = 0;
+                this.entityListPagination.total = undefined;
+                this.entityCache.clear();
+                await this._update();
+                break;
+            case 'loadEntityList':
+                this.entityListPagination.offset = 0;
+                this.entityListPagination.total = undefined;
+                this.entityCache.clear();
+                this.navigationState = {
+                    view: 'entity-list',
+                    tenantId: this.navigationState.tenantId,
+                    tenantName: this.navigationState.tenantName,
+                    entityType: message.entityType
+                };
+                await this._update();
+                break;
             case 'selectTenant':
                 this.navigationState = {
                     view: 'tenant',
                     tenantId: message.tenantId,
                     tenantName: message.tenantName
-                };
-                await this._update();
-                break;
-            case 'loadEntityList':
-                this.navigationState = {
-                    ...this.navigationState,
-                    view: 'entity-list',
-                    entityType: message.entityType
                 };
                 await this._update();
                 break;
@@ -111,16 +148,26 @@ export class HomePanel {
                 this.searchQuery = message.query;
                 await this._update();
                 break;
+            case 'entitySearch':
+                this.searchQuery = message.query || '';
+                this.entityListPagination.offset = 0;
+                this.entityListPagination.total = undefined;
+                await this._update();
+                break;
+            case 'performGlobalSearch':
+                await this.handleGlobalSearch(message.query, message.indices);
+                break;
+            case 'clearGlobalSearch':
+                this.navigationState.searchQuery = '';
+                this.navigationState.searchResults = [];
+                await this._update();
+                break;
             case 'globalSearch':
-                if (this.navigationState.tenantId) {
-                    const tenantInfo = this.tenantService.getTenant(this.navigationState.tenantId);
-                    if (tenantInfo) {
-                        await vscode.commands.executeCommand(commands.GLOBAL_SEARCH, { 
-                            tenantId: this.navigationState.tenantId,
-                            tenantName: tenantInfo.tenantName 
-                        });
-                    }
-                }
+                // Navigate to search page
+                this.navigateToSearch(
+                    this.navigationState.tenantId,
+                    this.navigationState.tenantName
+                );
                 break;
             case 'refresh':
                 this.entityCache.clear();
@@ -216,7 +263,57 @@ export class HomePanel {
         }
     }
 
-    private async fetchEntities(entityType: EntityType): Promise<any[]> {
+    private async handlePauseSync(tenantId: string): Promise<void> {
+        const syncManager = SyncManager.getInstance();
+        syncManager.pauseSync(tenantId);
+        await this._update();
+    }
+
+    private async handleResumeSync(tenantId: string): Promise<void> {
+        const syncManager = SyncManager.getInstance();
+        if (syncManager.canActivateSync(tenantId)) {
+            syncManager.resumeSync(tenantId);
+            await this._update();
+        } else {
+            vscode.window.showWarningMessage('Cannot activate sync: Maximum of 4 active sync tenants reached.');
+        }
+    }
+
+    private async handleGlobalSearch(query: string, indices?: string[]): Promise<void> {
+        const tenantId = this.navigationState.tenantId;
+        if (!tenantId) {
+            vscode.window.showWarningMessage('Please select a tenant first');
+            return;
+        }
+
+        if (!query || query.trim() === '') {
+            return;
+        }
+
+        try {
+            const searchServiceModule = await import('../../services/SearchService');
+            const searchService = searchServiceModule.SearchService.getInstance();
+            
+            this._panel.webview.postMessage({ command: 'showLoader', message: 'Searching...' });
+            
+            const results = await searchService.globalSearch(tenantId, query.trim(), { 
+                indices: indices as any 
+            });
+            
+            this.navigationState.searchQuery = query;
+            this.navigationState.searchResults = results;
+            this.navigationState.view = 'search';
+            
+            await this._update();
+            this._panel.webview.postMessage({ command: 'hideLoader' });
+        } catch (error: any) {
+            this._panel.webview.postMessage({ command: 'hideLoader' });
+            vscode.window.showErrorMessage(`Search failed: ${error.message}`);
+            console.error('[HomePanel] Search error:', error);
+        }
+    }
+
+    private async fetchEntities(entityType: EntityType, options?: { offset?: number; limit?: number }): Promise<any[]> {
         const tenantId = this.navigationState.tenantId;
         
         // Validate tenant info
@@ -225,39 +322,81 @@ export class HomePanel {
             return [];
         }
 
-        const cacheKey = `${tenantId}-${entityType}`;
+        const limit = Math.min(options?.limit || 250, 250); // Enforce max 250
+        const offset = options?.offset || 0;
+        const cacheKey = `${tenantId}-${entityType}-${offset}-${limit}`;
+        
         if (this.entityCache.has(cacheKey)) {
             return this.entityCache.get(cacheKey)!;
         }
 
         try {
-            // Get tenant info from service to ensure we have correct values
-            const tenantInfo = this.tenantService.getTenant(tenantId);
-            if (!tenantInfo) {
-                console.error(`[HomePanel] Tenant not found: ${tenantId}`);
-                return [];
+            // Use AdapterLayer for data access (enforces pagination and uses cache)
+            const adapterLayer = AdapterLayer.getInstance();
+            
+            // Map EntityType to ObjectType
+            const objectTypeMap: Record<EntityType, any> = {
+                'sources': 'sources',
+                'transforms': 'transforms',
+                'workflows': 'workflows',
+                'identity-profiles': 'identity-profiles',
+                'rules': 'rules',
+                'access-profiles': 'access-profiles',
+                'roles': 'roles',
+                'forms': 'forms',
+                'governance-groups': 'governance-groups',
+                'campaigns': 'campaigns',
+                'service-desk': 'service-desk',
+                'notification-templates': undefined,
+                'segments': undefined,
+                'tags': undefined,
+                'identities': 'identities',
+                'identity-attributes': undefined,
+                'search-attributes': undefined,
+                'applications': 'applications'
+            };
+
+            const objectType = objectTypeMap[entityType];
+            
+            if (objectType) {
+                // Use AdapterLayer (enforces pagination)
+                const entities = await adapterLayer.getObjects(tenantId, objectType, {
+                    offset,
+                    limit,
+                    useCache: true
+                });
+                
+                this.entityCache.set(cacheKey, entities);
+                return entities;
+            } else {
+                // Fallback for types not in AdapterLayer yet
+                const tenantInfo = this.tenantService.getTenant(tenantId);
+                if (!tenantInfo) {
+                    console.error(`[HomePanel] Tenant not found: ${tenantId}`);
+                    return [];
+                }
+
+                const client = new ISCClient(tenantId, tenantInfo.tenantName);
+                let entities: any[] = [];
+
+                switch (entityType) {
+                    case 'identity-attributes': 
+                        entities = await client.getIdentityAttributes(); 
+                        // Enforce pagination
+                        entities = entities.slice(offset, offset + limit);
+                        break;
+                    case 'search-attributes': 
+                        entities = await client.getSearchAttributes(); 
+                        // Enforce pagination
+                        entities = entities.slice(offset, offset + limit);
+                        break;
+                    default: 
+                        entities = [];
+                }
+
+                this.entityCache.set(cacheKey, entities);
+                return entities;
             }
-
-            // Use tenantInfo.tenantName (the subdomain) for API calls
-            const client = new ISCClient(tenantId, tenantInfo.tenantName);
-            let entities: any[] = [];
-
-            switch (entityType) {
-                case 'sources': entities = await client.getSources(); break;
-                case 'transforms': entities = await client.getTransforms(); break;
-                case 'workflows': entities = await client.getWorflows(); break;
-                case 'identity-profiles': entities = await client.getIdentityProfiles(); break;
-                case 'rules': entities = await client.getConnectorRules(); break;
-                case 'access-profiles': entities = (await client.getAccessProfiles()).data || []; break;
-                case 'roles': entities = (await client.getRoles()).data || []; break;
-                case 'governance-groups': entities = await client.getGovernanceGroups(); break;
-                case 'forms': entities = await client.listForms(); break;
-                case 'service-desk': entities = await client.getServiceDesks(); break;
-                default: entities = [];
-            }
-
-            this.entityCache.set(cacheKey, entities);
-            return entities;
         } catch (error: any) {
             console.error(`[HomePanel] Failed to fetch ${entityType}:`, error);
             return [];
@@ -266,6 +405,11 @@ export class HomePanel {
 
     private async _update(): Promise<void> {
         this._panel.webview.html = await this._getHtmlForWebview();
+    }
+
+    public navigateToSyncManagement(): void {
+        this.navigationState = { view: 'sync-management' };
+        this._update();
     }
 
     private async _getHtmlForWebview(): Promise<string> {
@@ -277,6 +421,14 @@ export class HomePanel {
             case 'home':
                 content = this._renderHomeView(tenants);
                 breadcrumbs = '<span class="breadcrumb active">Home</span>';
+                break;
+            case 'sync-management':
+                content = await this._renderSyncManagementView();
+                breadcrumbs = '<span class="breadcrumb" onclick="goHome()">Home</span><span class="sep">/</span><span class="breadcrumb active">Manage Tenant Sync</span>';
+                break;
+            case 'search':
+                content = await this._renderSearchView();
+                breadcrumbs = `<span class="breadcrumb" onclick="goHome()">Home</span><span class="sep">/</span><span class="breadcrumb" onclick="selectTenant('${this.navigationState.tenantId}', '${this.esc(this.navigationState.tenantName || '')}')">${this.esc(this.navigationState.tenantName || '')}</span><span class="sep">/</span><span class="breadcrumb active">Search</span>`;
                 break;
             case 'tenant':
                 content = await this._renderTenantView();
@@ -357,6 +509,7 @@ export class HomePanel {
         function openDocs() { vscode.postMessage({ command: 'openDocs' }); }
         function openSidebar() { vscode.postMessage({ command: 'openSidebar' }); }
         function globalSearch() { vscode.postMessage({ command: 'globalSearch' }); }
+        function openGlobalSearch() { vscode.postMessage({ command: 'globalSearch' }); }
         function newRule() { showLoader('Creating rule...'); vscode.postMessage({ command: 'newRule' }); }
         function handleSearch(event) { if (event.key === 'Enter') { showLoader('Searching...'); vscode.postMessage({ command: 'search', query: event.target.value }); } }
         document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); document.getElementById('searchInput')?.focus(); } });
@@ -456,26 +609,75 @@ export class HomePanel {
                             <span class="action-title">Documentation</span>
                             <span class="action-desc">SailPoint Developer Portal</span>
                         </button>
+                        <button class="action-btn" onclick="openSyncManagement()">
+                            <span class="action-title">Manage Tenant Sync</span>
+                            <span class="action-desc">Control background synchronization</span>
+                        </button>
                     </div>
                 </section>
             </div>
+            
+            <script>
+                function openSyncManagement() {
+                    vscode.postMessage({ command: 'navigate', state: { view: 'sync-management' } });
+                }
+            </script>
         `;
     }
 
     private async _renderTenantView(): Promise<string> {
-        const entityTypes: { type: EntityType; label: string }[] = [
-            { type: 'sources', label: 'Sources' },
-            { type: 'transforms', label: 'Transforms' },
-            { type: 'rules', label: 'Connector Rules' },
-            { type: 'workflows', label: 'Workflows' },
-            { type: 'identity-profiles', label: 'Identity Profiles' },
-            { type: 'access-profiles', label: 'Access Profiles' },
-            { type: 'roles', label: 'Roles' },
-            { type: 'governance-groups', label: 'Governance Groups' },
-            { type: 'forms', label: 'Forms' },
-            { type: 'service-desk', label: 'Service Desk' },
+        // Organized by category to match spec hierarchy
+        const categories = [
+            {
+                name: 'Identity Management',
+                items: [
+                    { type: 'identity-profiles' as EntityType, label: 'Identity Profiles' },
+                    { type: 'identities' as EntityType, label: 'Identities' },
+                    { type: 'identity-attributes' as EntityType, label: 'Identity Attributes' },
+                    { type: 'search-attributes' as EntityType, label: 'Search Attributes' }
+                ]
+            },
+            {
+                name: 'Access Model',
+                items: [
+                    { type: 'access-profiles' as EntityType, label: 'Access Profiles' },
+                    { type: 'roles' as EntityType, label: 'Roles' },
+                    { type: 'governance-groups' as EntityType, label: 'Governance Groups' }
+                ]
+            },
+            {
+                name: 'Connections',
+                items: [
+                    { type: 'sources' as EntityType, label: 'Sources' },
+                    { type: 'transforms' as EntityType, label: 'Transforms' },
+                    { type: 'rules' as EntityType, label: 'Connector Rules' },
+                    { type: 'service-desk' as EntityType, label: 'Service Desk' }
+                ]
+            },
+            {
+                name: 'Workflows',
+                items: [
+                    { type: 'workflows' as EntityType, label: 'Workflows' }
+                ]
+            },
+            {
+                name: 'Certifications',
+                items: [
+                    { type: 'campaigns' as EntityType, label: 'Campaigns' }
+                ]
+            },
+            {
+                name: 'Reports & Tools',
+                items: [
+                    { type: 'forms' as EntityType, label: 'Forms' },
+                    { type: 'applications' as EntityType, label: 'Applications' }
+                ]
+            }
         ];
+        
+        const entityTypes: { type: EntityType; label: string }[] = categories.flatMap(cat => cat.items);
 
+        // Get counts for all entity types
         const counts = await Promise.all(entityTypes.map(async et => {
             try { return { type: et.type, count: (await this.fetchEntities(et.type)).length }; }
             catch { return { type: et.type, count: 0 }; }
@@ -491,53 +693,371 @@ export class HomePanel {
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-secondary" onclick="newRule()">New Rule</button>
-                        <button class="btn btn-secondary" onclick="globalSearch()">Search</button>
+                        <button class="btn btn-secondary" onclick="openGlobalSearch()">Global Search</button>
                     </div>
                 </div>
                 
-                <section class="section">
-                    <h2 class="section-title">Resources</h2>
-                    <div class="table-container">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Count</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${entityTypes.map(et => `
-                                    <tr class="table-row" onclick="loadEntityList('${et.type}')">
-                                        <td class="cell-primary">${et.label}</td>
-                                        <td class="cell-count">${countMap.get(et.type) || 0}</td>
-                                        <td class="cell-action"><span class="arrow">→</span></td>
+                ${categories.map(category => `
+                    <section class="section">
+                        <h2 class="section-title">${category.name}</h2>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Count</th>
+                                        <th></th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                                </thead>
+                                <tbody>
+                                    ${category.items.map(item => `
+                                        <tr class="table-row" onclick="loadEntityList('${item.type}')">
+                                            <td class="cell-primary">${item.label}</td>
+                                            <td class="cell-count">${countMap.get(item.type) || 0}</td>
+                                            <td class="cell-action"><span class="arrow">→</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                `).join('')}
             </div>
         `;
     }
 
-    private async _renderEntityListView(): Promise<string> {
-        const entityType = this.navigationState.entityType!;
-        const entities = await this.fetchEntities(entityType);
-        const filtered = this.searchQuery
-            ? entities.filter(e => (e.name || '').toLowerCase().includes(this.searchQuery.toLowerCase()))
-            : entities;
-        const label = this._getEntityLabel(entityType);
+    private async _renderSyncManagementView(): Promise<string> {
+        const syncManager = SyncManager.getInstance();
+        const allSyncInfo = syncManager.getAllSyncInfo();
+        const activeSyncTenants = syncManager.getActiveSyncTenants();
+        const tenants = this.tenantService.getTenants();
 
         return `
             <div class="container">
                 <div class="page-header">
                     <div>
-                        <h1>${label}</h1>
-                        <p class="subtitle">${filtered.length} item${filtered.length !== 1 ? 's' : ''}</p>
+                        <h1>Manage Tenant Sync</h1>
+                        <p class="subtitle">Control which tenants participate in background synchronization</p>
                     </div>
-                    ${entityType === 'rules' ? `<button class="btn btn-primary" onclick="newRule()">New Rule</button>` : ''}
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="refreshSyncStatus()">Refresh</button>
+                    </div>
+                </div>
+                
+                <section class="section">
+                    <div class="info-box" style="margin-bottom: 24px; padding: 16px; background: var(--bg-2); border-radius: var(--radius);">
+                        <p style="margin: 0; color: var(--fg-2); font-size: 13px;">
+                            <strong>Active Sync Limit:</strong> Maximum ${activeSyncTenants.length} of 4 tenants can be actively syncing. 
+                            Paused tenants are visible in the UI but do not run background refresh.
+                        </p>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tenant</th>
+                                    <th>Sync State</th>
+                                    <th>Health</th>
+                                    <th>Last Sync</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tenants.map(tenant => {
+                                    const syncInfo = syncManager.getSyncInfo(tenant.id);
+                                    const isActive = syncInfo?.state === 'ACTIVE_SYNC';
+                                    const canActivate = syncManager.canActivateSync(tenant.id);
+                                    const isLimitReached = activeSyncTenants.length >= 4 && !isActive;
+                                    
+                                    return `
+                                        <tr class="table-row">
+                                            <td class="cell-primary">${this.esc(tenant.name)}</td>
+                                            <td>
+                                                <span class="status ${isActive ? 'status-success' : 'status-warning'}">
+                                                    ${syncInfo?.state || 'PAUSED'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="status ${syncInfo?.health === 'OK' ? 'status-success' : syncInfo?.health === 'DEGRADED' ? 'status-warning' : 'status-error'}">
+                                                    ${syncInfo?.health || 'OK'}
+                                                </span>
+                                            </td>
+                                            <td class="cell-secondary">
+                                                ${syncInfo?.lastSyncTimestamp 
+                                                    ? new Date(syncInfo.lastSyncTimestamp).toLocaleString() 
+                                                    : 'Never'}
+                                            </td>
+                                            <td class="cell-action">
+                                                ${isActive 
+                                                    ? `<button class="btn btn-small btn-secondary" onclick="pauseSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;">Pause</button>`
+                                                    : `<button class="btn btn-small btn-primary" onclick="resumeSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;" ${isLimitReached ? 'disabled' : ''}>Activate</button>`
+                                                }
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+            
+            <script>
+                function pauseSync(tenantId) {
+                    vscode.postMessage({ command: 'pauseSync', tenantId });
+                }
+                
+                function resumeSync(tenantId) {
+                    vscode.postMessage({ command: 'resumeSync', tenantId });
+                }
+                
+                function refreshSyncStatus() {
+                    vscode.postMessage({ command: 'refreshSyncStatus' });
+                }
+            </script>
+        `;
+    }
+
+    public navigateToSearch(tenantId?: string, tenantName?: string, initialQuery?: string): void {
+        this.navigationState = { 
+            view: 'search',
+            tenantId: tenantId || this.navigationState.tenantId,
+            tenantName: tenantName || this.navigationState.tenantName,
+            searchQuery: initialQuery || ''
+        };
+        this._update();
+    }
+
+    private async _renderSearchView(): Promise<string> {
+        const tenantId = this.navigationState.tenantId;
+        const searchQuery = this.navigationState.searchQuery || '';
+        const searchResults = this.navigationState.searchResults || [];
+        
+        if (!tenantId) {
+            return `
+                <div class="container">
+                    <div class="empty">
+                        <p>Please select a tenant first</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Import SearchService dynamically
+        const searchServiceModule = await import('../../services/SearchService');
+        const searchService = searchServiceModule.SearchService.getInstance();
+        const quickFilters = searchServiceModule.QUICK_FILTERS;
+        const history = searchService.getSearchHistory(tenantId);
+
+        return `
+            <div class="container">
+                <div class="page-header">
+                    <div>
+                        <h1>Search</h1>
+                        <p class="subtitle">Search across SailPoint ISC resources</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="clearSearch()">Clear</button>
+                    </div>
+                </div>
+                
+                <div class="search-container" style="margin-bottom: 24px; max-width: 600px;">
+                    <span class="search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        id="globalSearchInput" 
+                        placeholder="Enter search query (e.g., name:John OR email:*@example.com)..." 
+                        value="${this.esc(searchQuery)}"
+                        onkeydown="if(event.key === 'Enter') performSearch()"
+                    />
+                    <button class="btn btn-primary" onclick="performSearch()" style="margin-left: 8px;">Search</button>
+                </div>
+                
+                ${history.length > 0 ? `
+                    <section class="section" style="margin-bottom: 24px;">
+                        <h3 class="section-title" style="font-size: 14px; margin-bottom: 8px;">Recent Searches</h3>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${history.slice(0, 5).map((h: string) => `
+                                <button class="btn btn-small btn-secondary" onclick="searchHistory('${this.esc(h)}')" style="font-size: 12px; padding: 4px 12px;">
+                                    ${this.esc(h)}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </section>
+                ` : ''}
+                
+                <section class="section" style="margin-bottom: 24px;">
+                    <h3 class="section-title" style="font-size: 14px; margin-bottom: 8px;">Quick Filters</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                        ${quickFilters.map((filter: any) => `
+                            <button class="action-btn" onclick="applyQuickFilter('${this.esc(filter.query)}', ${JSON.stringify(filter.indices)})" style="text-align: left; padding: 12px;">
+                                <span class="action-title">${filter.label}</span>
+                                <span class="action-desc">${filter.description}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </section>
+                
+                ${searchQuery && searchResults.length > 0 ? `
+                    <section class="section">
+                        <h2 class="section-title">Search Results (${searchResults.length})</h2>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>ID</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${searchResults.map((result: any) => {
+                                        const entityType = result._type === 'identity' ? 'identities' :
+                                                          result._type === 'accessprofile' ? 'access-profiles' :
+                                                          result._type === 'role' ? 'roles' :
+                                                          result._type === 'entitlement' ? 'entitlements' :
+                                                          result._type === 'account' ? 'accounts' : '';
+                                        const hasEntityType = entityType !== '';
+                                        return `
+                                            <tr class="table-row" ${hasEntityType ? `onclick="openSearchResult('${entityType}', '${result.id}', '${this.esc(result.name || '')}')" style="cursor: pointer;"` : ''}>
+                                                <td class="cell-primary">${this.esc(result.name || 'Unnamed')}</td>
+                                                <td class="cell-meta">${this.esc(result._type || '')}</td>
+                                                <td class="cell-secondary">${this.esc(result.id || '')}</td>
+                                                <td class="cell-action">${hasEntityType ? '<span class="arrow">→</span>' : ''}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                ` : searchQuery && searchResults.length === 0 ? `
+                    <div class="empty">
+                        <p>No results found for "${this.esc(searchQuery)}"</p>
+                    </div>
+                ` : ''}
+            </div>
+            
+            <script>
+                function performSearch() {
+                    const input = document.getElementById('globalSearchInput');
+                    const query = input.value.trim();
+                    if (query) {
+                        vscode.postMessage({ command: 'performGlobalSearch', query });
+                    }
+                }
+                
+                function clearSearch() {
+                    document.getElementById('globalSearchInput').value = '';
+                    vscode.postMessage({ command: 'clearGlobalSearch' });
+                }
+                
+                function searchHistory(query) {
+                    document.getElementById('globalSearchInput').value = query;
+                    vscode.postMessage({ command: 'performGlobalSearch', query });
+                }
+                
+                function applyQuickFilter(query, indices) {
+                    document.getElementById('globalSearchInput').value = query;
+                    vscode.postMessage({ command: 'performGlobalSearch', query: query, indices: indices });
+                }
+                
+                function openSearchResult(entityType, entityId, entityName) {
+                    if (entityType) {
+                        vscode.postMessage({ command: 'openEntity', entityType: entityType, entityId: entityId, entityName: entityName });
+                    } else {
+                        vscode.window.showWarningMessage('Cannot open this result type');
+                    }
+                }
+            </script>
+        `;
+    }
+
+    private async _renderEntityListView(): Promise<string> {
+        const entityType = this.navigationState.entityType!;
+        
+        // Fetch entities with pagination (enforced max 250)
+        const entities = await this.fetchEntities(entityType, {
+            offset: this.entityListPagination.offset,
+            limit: this.entityListPagination.limit
+        });
+        
+        // Get total count for pagination
+        let totalCount = this.entityListPagination.total;
+        if (totalCount === undefined) {
+            try {
+                const adapterLayer = AdapterLayer.getInstance();
+                const tenantId = this.navigationState.tenantId!;
+                const objectTypeMap: Record<EntityType, any> = {
+                    'sources': 'sources',
+                    'transforms': 'transforms',
+                    'workflows': 'workflows',
+                    'identity-profiles': 'identity-profiles',
+                    'rules': 'rules',
+                    'access-profiles': 'access-profiles',
+                    'roles': 'roles',
+                    'forms': 'forms',
+                    'governance-groups': 'governance-groups',
+                    'campaigns': 'campaigns',
+                    'service-desk': 'service-desk',
+                    'identities': 'identities',
+                    'applications': 'applications',
+                    'notification-templates': undefined,
+                    'segments': undefined,
+                    'tags': undefined,
+                    'identity-attributes': undefined,
+                    'search-attributes': undefined
+                };
+                const objectType = objectTypeMap[entityType];
+                if (objectType) {
+                    totalCount = await adapterLayer.getObjectCount(tenantId, objectType);
+                } else {
+                    totalCount = entities.length; // Fallback
+                }
+            } catch (error) {
+                totalCount = entities.length; // Fallback
+            }
+            this.entityListPagination.total = totalCount;
+        }
+        
+        const filtered = this.searchQuery
+            ? entities.filter(e => (e.name || '').toLowerCase().includes(this.searchQuery.toLowerCase()))
+            : entities;
+        const label = this._getEntityLabel(entityType);
+        
+        const hasMore = (this.entityListPagination.offset + this.entityListPagination.limit) < totalCount;
+        const currentPage = Math.floor(this.entityListPagination.offset / this.entityListPagination.limit) + 1;
+        const totalPages = Math.ceil(totalCount / this.entityListPagination.limit);
+
+        const showingFrom = this.entityListPagination.offset + 1;
+        const showingTo = Math.min(this.entityListPagination.offset + filtered.length, totalCount);
+        
+        return `
+            <div class="container">
+                <div class="page-header">
+                    <div>
+                        <h1>${label}</h1>
+                        <p class="subtitle">Showing ${showingFrom}-${showingTo} of ${totalCount} item${totalCount !== 1 ? 's' : ''}${totalCount > 250 ? ' (paginated)' : ''}</p>
+                    </div>
+                    <div class="header-actions">
+                        ${entityType === 'rules' ? `<button class="btn btn-primary" onclick="newRule()">New Rule</button>` : ''}
+                        <button class="btn btn-secondary" onclick="refreshEntityList()">Refresh</button>
+                    </div>
+                </div>
+                
+                <div class="search-container" style="margin-bottom: 16px;">
+                    <span class="search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        id="entitySearchInput" 
+                        placeholder="Search ${label.toLowerCase()}..." 
+                        value="${this.esc(this.searchQuery || '')}"
+                        oninput="handleEntitySearch(this.value)"
+                        onkeydown="if(event.key === 'Enter') handleEntitySearch(this.value)"
+                    />
+                    ${this.searchQuery ? `<button class="btn btn-small" onclick="clearEntitySearch()" style="margin-left: 8px; padding: 4px 8px; font-size: 12px;">Clear</button>` : ''}
                 </div>
                 
                 ${filtered.length > 0 ? `
@@ -564,12 +1084,51 @@ export class HomePanel {
                             </tbody>
                         </table>
                     </div>
+                    
+                    ${totalCount > this.entityListPagination.limit ? `
+                        <div class="pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px;">
+                            <div>
+                                <button class="btn btn-small btn-secondary" onclick="previousPage()" ${this.entityListPagination.offset === 0 ? 'disabled' : ''} style="font-size: 12px; padding: 4px 8px;">Previous</button>
+                                <span style="margin: 0 12px; color: var(--fg-2); font-size: 13px;">
+                                    Page ${currentPage} of ${totalPages}
+                                </span>
+                                <button class="btn btn-small btn-secondary" onclick="nextPage()" ${!hasMore ? 'disabled' : ''} style="font-size: 12px; padding: 4px 8px;">Next</button>
+                            </div>
+                            <div style="color: var(--fg-2); font-size: 12px;">
+                                ${this.entityListPagination.limit} per page
+                            </div>
+                        </div>
+                    ` : ''}
                 ` : `
                     <div class="empty">
-                        <p>No ${label.toLowerCase()} found</p>
+                        <p>No ${label.toLowerCase()} found${this.searchQuery ? ` matching "${this.esc(this.searchQuery)}"` : ''}</p>
+                        ${this.searchQuery ? `<button class="btn btn-secondary" onclick="clearEntitySearch()" style="margin-top: 12px;">Clear Search</button>` : ''}
                     </div>
                 `}
             </div>
+            
+            <script>
+                function previousPage() {
+                    vscode.postMessage({ command: 'entityListPreviousPage' });
+                }
+                
+                function nextPage() {
+                    vscode.postMessage({ command: 'entityListNextPage' });
+                }
+                
+                function refreshEntityList() {
+                    vscode.postMessage({ command: 'refreshEntityList' });
+                }
+                
+                function handleEntitySearch(query) {
+                    vscode.postMessage({ command: 'entitySearch', query: query });
+                }
+                
+                function clearEntitySearch() {
+                    document.getElementById('entitySearchInput').value = '';
+                    vscode.postMessage({ command: 'entitySearch', query: '' });
+                }
+            </script>
         `;
     }
 
@@ -579,8 +1138,11 @@ export class HomePanel {
             'identity-profiles': 'Identity Profiles', 'rules': 'Connector Rules',
             'access-profiles': 'Access Profiles', 'roles': 'Roles', 'forms': 'Forms',
             'governance-groups': 'Governance Groups', 'service-desk': 'Service Desk',
+            'identities': 'Identities', 'campaigns': 'Campaigns', 'applications': 'Applications',
+            'identity-attributes': 'Identity Attributes', 'search-attributes': 'Search Attributes',
             'source': 'Source', 'transform': 'Transform', 'workflow': 'Workflow',
-            'rule': 'Rule', 'access-profile': 'Access Profile', 'role': 'Role'
+            'rule': 'Rule', 'access-profile': 'Access Profile', 'role': 'Role',
+            'identity': 'Identity', 'identity-profile': 'Identity Profile'
         };
         return labels[type] || type;
     }

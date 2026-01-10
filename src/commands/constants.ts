@@ -180,3 +180,4 @@ export const EXPORT_TO_GIT = `${COMMAND_PREFIX}.export-to-git`;
 export const CLEAR_CACHE = `${COMMAND_PREFIX}.clear-cache`;
 export const TOGGLE_STAGING = `${COMMAND_PREFIX}.toggle-staging`;
 export const OPEN_CREDENTIALS_MANAGER = `${COMMAND_PREFIX}.open-credentials-manager`;
+export const OPEN_SYNC_MANAGEMENT = `${COMMAND_PREFIX}.open-sync-management`;

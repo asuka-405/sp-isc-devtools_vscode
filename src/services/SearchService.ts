@@ -158,7 +158,7 @@ export class SearchService {
             throw new Error('Tenant not found');
         }
 
-        const client = new ISCClient(tenantId, tenantInfo.name);
+        const client = new ISCClient(tenantId, tenantInfo.tenantName || tenantInfo.name);
         const indices = options?.indices ?? ['identities', 'accessprofiles', 'roles', 'entitlements'];
         const limit = options?.limit ?? 100;
         const results: SearchResult[] = [];
@@ -312,7 +312,7 @@ export class SearchService {
             throw new Error('Tenant not found');
         }
 
-        const client = new ISCClient(tenantId, tenantInfo.name);
+        const client = new ISCClient(tenantId, tenantInfo.tenantName || tenantInfo.name);
         const profiles = await client.getIdentityProfiles();
         const usages: { profileId: string; profileName: string; attributeName: string }[] = [];
 

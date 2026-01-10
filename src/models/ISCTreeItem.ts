@@ -9,6 +9,7 @@ import * as commands from "../commands/constants";
 import * as configuration from '../configurationConstants';
 import { convertConstantToTitleCase, escapeFilter, isEmpty, isNotEmpty } from "../utils/stringUtils";
 import { TenantService } from "../services/TenantService";
+import { SyncManager, SyncState } from "../services/SyncManager";
 import { CampaignStatusV3, DimensionV2025 } from "sailpoint-api-client";
 import { convertToBaseTreeItem } from "../views/utils";
 import { EndpointUtils } from "../utils/EndpointUtils";
@@ -59,33 +60,161 @@ export class TenantTreeItem extends BaseTreeItem {
 		tenantDisplayName: string,
 		private readonly tenantService: TenantService
 	) {
+		// Determine initial collapsible state based on sync status
+		const syncManager = SyncManager.getInstance();
+		const syncState = syncManager.getSyncState(tenantId);
+		const initialState = syncState === SyncState.ACTIVE_SYNC 
+			? vscode.TreeItemCollapsibleState.Collapsed 
+			: vscode.TreeItemCollapsibleState.Collapsed; // Keep collapsed for now, can expand ACTIVE_SYNC later
+		
 		super(tenantLabel,
 			tenantId,
 			tenantName,
 			tenantDisplayName,
-			vscode.TreeItemCollapsibleState.Collapsed);
-		this.tooltip = tenantName;
-		this.id = tenantId
+			initialState);
+		
+		this.tooltip = this.getTooltip();
+		this.id = tenantId;
+		this.updateSyncStatus();
 	}
+	
 	iconPath = new vscode.ThemeIcon("organization");
 	contextValue = "tenant";
+	
+	private updateSyncStatus(): void {
+		const syncManager = SyncManager.getInstance();
+		const syncInfo = syncManager.getSyncInfo(this.tenantId);
+		
+		if (syncInfo) {
+			// Update description to show sync status
+			const syncStateLabel = syncInfo.state === SyncState.ACTIVE_SYNC ? '🟢 Syncing' :
+			                       syncInfo.state === SyncState.PAUSED ? '⏸️ Paused' :
+			                       syncInfo.state === SyncState.ERROR ? '🔴 Error' : '⚪ Disabled';
+			
+			this.description = syncStateLabel;
+			
+			// Update tooltip with more details
+			this.tooltip = this.getTooltip();
+		}
+	}
+	
+	private getTooltip(): string {
+		const syncManager = SyncManager.getInstance();
+		const syncInfo = syncManager.getSyncInfo(this.tenantId);
+		const tenantInfo = this.tenantService.getTenant(this.tenantId);
+		
+		let tooltip = `${this.tenantName}\n`;
+		tooltip += `Display Name: ${tenantInfo?.name || 'N/A'}\n`;
+		
+		if (syncInfo) {
+			tooltip += `Sync State: ${syncInfo.state}\n`;
+			tooltip += `Health: ${syncInfo.health}\n`;
+			if (syncInfo.lastSyncTimestamp) {
+				tooltip += `Last Sync: ${new Date(syncInfo.lastSyncTimestamp).toLocaleString()}\n`;
+			}
+			if (syncInfo.errorMessage) {
+				tooltip += `Error: ${syncInfo.errorMessage}\n`;
+			}
+		}
+		
+		return tooltip;
+	}
+	
+	updateIcon(context: vscode.ExtensionContext): void {
+		const syncManager = SyncManager.getInstance();
+		const syncState = syncManager.getSyncState(this.tenantId);
+		
+		// Update icon based on sync state
+		if (syncState === SyncState.ACTIVE_SYNC) {
+			this.iconPath = new vscode.ThemeIcon("sync", new vscode.ThemeColor("charts.green"));
+		} else if (syncState === SyncState.ERROR) {
+			this.iconPath = new vscode.ThemeIcon("error", new vscode.ThemeColor("charts.red"));
+		} else if (syncState === SyncState.PAUSED) {
+			this.iconPath = new vscode.ThemeIcon("debug-pause", new vscode.ThemeColor("charts.yellow"));
+		} else {
+			this.iconPath = new vscode.ThemeIcon("organization");
+		}
+		
+		// Also update sync status text
+		this.updateSyncStatus();
+	}
 
 	async getChildren(): Promise<BaseTreeItem[]> {
 		const results: BaseTreeItem[] = [];
-		results.push(new SourcesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new TransformsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new WorkflowsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new RulesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new ServiceDesksTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new IdentityProfilesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new AccessProfilesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new RolesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new FormsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new SearchAttributesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new IdentityAttributesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new IdentitiesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new ApplicationsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
-		results.push(new CampaignsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName));
+		
+		// Identity Management
+		results.push(new CategoryTreeItem(
+			"Identity Management",
+			this.tenantId,
+			this.tenantName,
+			this.tenantDisplayName,
+			() => [
+				new IdentityProfilesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new IdentitiesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new IdentityAttributesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new SearchAttributesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+			]
+		));
+		
+		// Access Model
+		results.push(new CategoryTreeItem(
+			"Access Model",
+			this.tenantId,
+			this.tenantName,
+			this.tenantDisplayName,
+			() => [
+				new AccessProfilesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new RolesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+			]
+		));
+		
+		// Connections
+		results.push(new CategoryTreeItem(
+			"Connections",
+			this.tenantId,
+			this.tenantName,
+			this.tenantDisplayName,
+			() => [
+				new SourcesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new TransformsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new RulesTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new ServiceDesksTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+			]
+		));
+		
+		// Workflows
+		results.push(new CategoryTreeItem(
+			"Workflows",
+			this.tenantId,
+			this.tenantName,
+			this.tenantDisplayName,
+			() => [
+				new WorkflowsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+			]
+		));
+		
+		// Certifications
+		results.push(new CategoryTreeItem(
+			"Certifications",
+			this.tenantId,
+			this.tenantName,
+			this.tenantDisplayName,
+			() => [
+				new CampaignsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+			]
+		));
+		
+		// Reports & Tools
+		results.push(new CategoryTreeItem(
+			"Reports & Tools",
+			this.tenantId,
+			this.tenantName,
+			this.tenantDisplayName,
+			() => [
+				new FormsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName),
+				new ApplicationsTreeItem(this.tenantId, this.tenantName, this.tenantDisplayName)
+			]
+		));
 
 		return results
 	}
@@ -99,6 +228,35 @@ export class TenantTreeItem extends BaseTreeItem {
 		return getUIUrl(this.tenantName, "/ui/admin")
 	}
 
+}
+
+/**
+ * Category tree item for organizing tenant resources
+ */
+export class CategoryTreeItem extends BaseTreeItem {
+	constructor(
+		categoryLabel: string,
+		tenantId: string,
+		tenantName: string,
+		tenantDisplayName: string,
+		private readonly childrenFactory: () => BaseTreeItem[]
+	) {
+		super(
+			categoryLabel,
+			tenantId,
+			tenantName,
+			tenantDisplayName,
+			vscode.TreeItemCollapsibleState.Collapsed
+		);
+		this.id = `category-${categoryLabel.toLowerCase().replace(/\s+/g, '-')}-${tenantId}`;
+		this.contextValue = 'category';
+	}
+
+	iconPath = new vscode.ThemeIcon("folder");
+	
+	async getChildren(): Promise<BaseTreeItem[]> {
+		return this.childrenFactory();
+	}
 }
 
 /**
