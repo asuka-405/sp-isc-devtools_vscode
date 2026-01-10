@@ -765,6 +765,12 @@ The extension supports the following settings:
 
 ## Release Notes
 
+### Version 0.1.1
+
+- **Workflow Fixes**: Fixed GitHub Actions workflow syntax errors for marketplace publishing
+- **Packaging Improvements**: Enhanced VSIX packaging with proper file exclusions
+- **Testing Tools**: Added local workflow testing script for development
+
 ### Version 0.1.0-alpha
 
 First alpha release of SailPoint ISC Dev Tools - A comprehensive development environment for SailPoint Identity Security Cloud.
