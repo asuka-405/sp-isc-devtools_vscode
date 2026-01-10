@@ -93,7 +93,12 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          # Ensure postinstall runs (installs campaign-webview dependencies)
+          npm run postinstall || true
+          # Verify rimraf is available
+          ./node_modules/.bin/rimraf --version || npx rimraf --version || echo "rimraf available via npx"
 
       - name: Install vsce
         run: npm install -g @vscode/vsce
@@ -102,10 +107,21 @@ jobs:
         run: npm install -g ovsx
 
       - name: Build extension
-        run: npm run esbuild
+        run: |
+          # Ensure postinstall script has run
+          npm run postinstall || true
+          # Add node_modules/.bin to PATH for rimraf
+          export PATH="$PWD/node_modules/.bin:$PATH"
+          # Build the extension
+          npm run esbuild
+          echo "Build completed successfully"
 
       - name: Package extension
-        run: vsce package --allow-package-secrets sendgrid --out sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix
+        run: |
+          # Add node_modules/.bin to PATH for rimraf (used in prepublish script)
+          export PATH="$PWD/node_modules/.bin:$PATH"
+          vsce package --allow-package-secrets sendgrid --out sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix
+          echo "VSIX package created"
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
@@ -144,10 +160,9 @@ jobs:
           path: .
 
       - name: Publish to VS Code Marketplace
+        if: ${{ secrets.VSCE_PAT != '' }}
         run: |
-          vsce publish -p ${{ secrets.VSCE_PAT }} --allow-package-secrets sendgrid
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          vsce publish -p "${{ secrets.VSCE_PAT }}" --allow-package-secrets sendgrid
         continue-on-error: true
 
       - name: Create GitHub Release
@@ -187,10 +202,9 @@ jobs:
           path: .
 
       - name: Publish to Open VSX Marketplace
+        if: ${{ secrets.OVSX_TOKEN != '' }}
         run: |
-          ovsx publish sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix -p ${{ secrets.OVSX_TOKEN }}
-        env:
-          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+          ovsx publish sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix -p "${{ secrets.OVSX_TOKEN }}"
         continue-on-error: true
 
   notify:
