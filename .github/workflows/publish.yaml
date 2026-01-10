@@ -160,8 +160,11 @@ jobs:
           path: .
 
       - name: Publish to VS Code Marketplace
-        if: ${{ secrets.VSCE_PAT != '' }}
         run: |
+          if [ -z "${{ secrets.VSCE_PAT }}" ]; then
+            echo "VSCE_PAT secret is not set. Skipping VS Code Marketplace publish."
+            exit 0
+          fi
           vsce publish -p "${{ secrets.VSCE_PAT }}" --allow-package-secrets sendgrid
         continue-on-error: true
 
@@ -202,8 +205,11 @@ jobs:
           path: .
 
       - name: Publish to Open VSX Marketplace
-        if: ${{ secrets.OVSX_TOKEN != '' }}
         run: |
+          if [ -z "${{ secrets.OVSX_TOKEN }}" ]; then
+            echo "OVSX_TOKEN secret is not set. Skipping Open VSX Marketplace publish."
+            exit 0
+          fi
           ovsx publish sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix -p "${{ secrets.OVSX_TOKEN }}"
         continue-on-error: true
 
