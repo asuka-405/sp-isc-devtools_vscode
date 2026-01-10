@@ -159,12 +159,39 @@ jobs:
           name: extension-vsix
           path: .
 
+      - name: Setup environment for publishing
+        run: |
+          # Add node_modules/.bin to PATH for rimraf (used in prepublish script)
+          echo "PATH=$GITHUB_WORKSPACE/node_modules/.bin:$PATH" >> $GITHUB_ENV
+          # Verify rimraf is available
+          if [ -f "$GITHUB_WORKSPACE/node_modules/.bin/rimraf" ]; then
+            echo "✓ rimraf found"
+          else
+            echo "⚠ rimraf not found in node_modules/.bin"
+          fi
+
+      - name: Checkout source for publishing
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies for publishing
+        run: |
+          npm ci
+          npm run postinstall || true
+
       - name: Publish to VS Code Marketplace
         run: |
           if [ -z "${{ secrets.VSCE_PAT }}" ]; then
             echo "VSCE_PAT secret is not set. Skipping VS Code Marketplace publish."
             exit 0
           fi
+          # Add node_modules/.bin to PATH for rimraf (used in prepublish script)
+          export PATH="$GITHUB_WORKSPACE/node_modules/.bin:$PATH"
+          # Publish from source (vsce will run prepublish which needs rimraf)
           vsce publish -p "${{ secrets.VSCE_PAT }}" --allow-package-secrets sendgrid
         continue-on-error: true
 
@@ -206,11 +233,11 @@ jobs:
 
       - name: Publish to Open VSX Marketplace
         run: |
-          if [ -z "${{ secrets.OVSX_TOKEN }}" ]; then
-            echo "OVSX_TOKEN secret is not set. Skipping Open VSX Marketplace publish."
+          if [ -z "${{ secrets.OVSX_SECRET }}" ]; then
+            echo "OVSX_SECRET secret is not set. Skipping Open VSX Marketplace publish."
             exit 0
           fi
-          ovsx publish sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix -p "${{ secrets.OVSX_TOKEN }}"
+          ovsx publish sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix -p "${{ secrets.OVSX_SECRET }}"
         continue-on-error: true
 
   notify:
