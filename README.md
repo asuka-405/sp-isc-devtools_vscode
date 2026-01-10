@@ -1,36 +1,73 @@
-# SailPoint Identity Security Cloud for Visual Studio Code
+# SailPoint ISC Dev Tools for Visual Studio Code
 
 > This extension is not developed, maintained or supported by SailPoint.
 > It is a community effort to help manage Identity Security Cloud from Visual Studio Code.
 
-The SailPoint Identity Security Cloud extension makes it easy to:
+## Credits & Attribution
 
-- Connect to several tenants
-- Import and export config of a tenant
-- Edit access request, public identities, password, and org configuration for a tenant
-- View, edit, aggregate, test, peek, ping, clone, or reset sources
-- View, create, edit, delete, clone, and test transforms
-- View, create, edit, delete provisioning policies of a source
-- View, create, edit, delete schemas of a source
-- View, edit, enable, disable, export, import workflows and view execution history
-- View, create, edit, delete connector rules and export/import the script of a rule
-- View, edit, delete service desk integrations
-- View, edit, delete identity profiles and lifecycle states, and refreshes all the identities under a profile
-- Import/Export Accounts (import for delimited files only), uncorrelated accounts, entitlement details
-- View, edit, create, delete, export, import access profiles
-- View, edit, create, delete, export, import roles, and dimensions
-- View, edit, create, delete, export, import forms
-- View, edit, create, delete search attribute config
-- View, edit, create, delete identity attribute
-- View, trigger attribute sync or process, delete identities
-- View, edit, create, delete applications
-- View, report, escalate, send reminders, reassign to access item owners or reassign based on a file, approve in bulk certification campaigns
+This extension is built on top of the work done by **Yannick Beot** and the original [SailPoint Identity Security Cloud extension](https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow). I thank him for creating the foundation that made this enhanced version possible.
+
+This fork adds additional features including:
+- Enhanced search functionality (entity list search and global search page)
+- Background tenant synchronization with state management
+- Improved architecture with Sync Manager, State Engine, and Adapter Layer
+- Contextual help and tooltips throughout the extension
+- And many more improvements based on community feedback
+
+The SailPoint ISC Dev Tools extension makes it easy to:
+
+- **Multi-tenant Management**: Connect to and manage several tenants with background synchronization
+- **Search & Discovery**: 
+  - Search box in entity lists (identities, roles, access profiles, etc.) for quick filtering
+  - Dedicated global search page with SailPoint search queries, recent searches, and quick filters
+- **Configuration Management**: Import and export config of a tenant
+- **Source Management**: View, edit, aggregate, test, peek, ping, clone, or reset sources
+- **Transform Management**: View, create, edit, delete, clone, and test transforms
+- **Provisioning**: View, create, edit, delete provisioning policies of a source
+- **Schema Management**: View, create, edit, delete schemas of a source
+- **Workflow Management**: View, edit, enable, disable, export, import workflows and view execution history
+- **Rule Management**: View, create, edit, delete connector rules and export/import the script of a rule
+- **Service Desk**: View, edit, delete service desk integrations
+- **Identity Management**: View, edit, delete identity profiles and lifecycle states, refresh identities, search identities
+- **Data Import/Export**: Import/Export Accounts (import for delimited files only), uncorrelated accounts, entitlement details
+- **Access Management**: View, edit, create, delete, export, import access profiles
+- **Role Management**: View, edit, create, delete, export, import roles, and dimensions
+- **Form Management**: View, edit, create, delete, export, import forms
+- **Attribute Management**: View, edit, create, delete search attribute config and identity attributes
+- **Application Management**: View, edit, create, delete applications
+- **Certification Campaigns**: View, report, escalate, send reminders, reassign to access item owners or reassign based on a file, approve in bulk
 
 ## Installation
 
-Go to the extension menu or press `Ctrl`+`Shift`+`X` and look for the extension "Identity Security Cloud". Click on the button `Install`.
+Go to the extension menu or press `Ctrl`+`Shift`+`X` and look for the extension "SailPoint ISC Dev Tools". Click on the button `Install`.
 
 The VSIX can be installed from the extension menu. Press `Ctrl`+`Shift`+`X` and in the menu, click `Install from VSIX...`.
+
+### Building from Source
+
+To build the extension from source:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/asuka-405/sp-isc-devtools_vscode.git
+   cd sp-isc-devtools_vscode
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Build the extension:
+   ```bash
+   npm run esbuild
+   ```
+
+4. Package as VSIX (optional):
+   ```bash
+   npm install -g @vscode/vsce
+   vsce package
+   ```
 
 ## Add new tenant
 
@@ -42,37 +79,239 @@ Alternatively, you can click on the `+` in the SailPoint view.
 
 You can add a tenant by using a Personal Access Token (PAT) or by using a short-lived access token (like one you can get from https://yourtenant.identitynow.com/ui/session).
 
-![Add tenant](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/add-tenant.gif)
+```
+┌─────────────────────────────────────────────────────────┐
+│  VS Code Command Palette                                │
+├─────────────────────────────────────────────────────────┤
+│  > ISC: Add tenant...                                   │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Add Tenant Configuration                        │  │
+│  ├──────────────────────────────────────────────────┤  │
+│  │  Tenant Name: [company-dev____________]                │  │
+│  │  Authentication Method: [PAT ▼]                 │  │
+│  │  Client ID: [________________]                   │  │
+│  │  Client Secret: [****************]               │  │
+│  │                                                   │  │
+│  │  [ Cancel ]  [  Add Tenant  ]                   │  │
+│  └──────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
 
 It is also possible to add a tenant by using the following URIs:
-`vscode://yannick-beot-sp.vscode-sailpoint-identitynow/addtenant?tenantName=company&accessToken=eyJh...&authenticationMethod=AccessToken` or
-`vscode://yannick-beot-sp.vscode-sailpoint-identitynow/addtenant?tenantName=company&clientId=806c451e057b442ba67b5d459716e97a&clientSecret=***&authenticationMethod=PersonalAccessToken`.
+`vscode://ArchMedia.sp-isc-devtools/addtenant?tenantName=company&accessToken=eyJh...&authenticationMethod=AccessToken` or
+`vscode://ArchMedia.sp-isc-devtools/addtenant?tenantName=company&clientId=806c451e057b442ba67b5d459716e97a&clientSecret=***&authenticationMethod=PersonalAccessToken`.
+
+## Search Functionality
+
+### Entity List Search
+
+All entity list views (identities, roles, access profiles, etc.) now include a search box at the top of the page. Simply type in the search box to filter entities by name in real-time. This works with pagination - the search filters the currently loaded page.
+
+**Example**: When viewing identities, type "John" in the search box to quickly find all identities with "John" in their name.
+
+```
+┌─ Identities ───────────────────────────────────────────┐
+│                                                        │
+│  Identities                                            │
+│  Showing 1-25 of 150 items (paginated)                │
+│                                                        │
+│  ┌──────────────────────────────────────────────┐    │
+│  │ 🔍 [John________________] [Clear]            │    │
+│  └──────────────────────────────────────────────┘    │
+│                                                        │
+│  ┌──────────────────────────────────────────────┐    │
+│  │ Name              │ Type    │                 │    │
+│  ├──────────────────────────────────────────────┤    │
+│  │ John Doe          │ Identity│ →              │    │
+│  │ John Smith        │ Identity│ →              │    │
+│  │ Johnny Johnson    │ Identity│ →              │    │
+│  └──────────────────────────────────────────────┘    │
+│                                                        │
+│  [ Previous ]  Page 1 of 6  [ Next ]                │
+└────────────────────────────────────────────────────────┘
+```
+
+### Global Search
+
+The extension includes a powerful global search feature that allows you to search across multiple SailPoint ISC resources using SailPoint's native search syntax.
+
+**Accessing Global Search**:
+- Click the "Global Search" button in the tenant view
+- Use Command Palette: `ISC: Global Search...`
+- Right-click on a tenant in the tree view and select "Global Search"
+
+**Features**:
+- **Search Query Input**: Enter SailPoint search queries (e.g., `name:John OR email:*@example.com`)
+- **Recent Searches**: Quick access to your last 5 search queries
+- **Quick Filters**: Pre-built filters for common searches:
+  - Modified Today / This Week
+  - Active / Inactive Identities
+  - Privileged Access
+  - Requestable Roles
+  - Orphan Accounts
+- **Search Results**: View results in a table with clickable items that open the resource directly
+
+**Search Query Examples**:
+- `name:John` - Find resources with "John" in the name
+- `email:*@example.com` - Find identities with email domain
+- `lifecycleState.name:active` - Find active identities
+- `modified:[now-7d TO now]` - Find items modified in the last 7 days
+
+```
+┌─ Global Search ────────────────────────────────────────┐
+│                                                        │
+│  Search                                                │
+│  Search across SailPoint ISC resources                 │
+│                                                        │
+│  ┌────────────────────────────────────────────────┐  │
+│  │ 🔍 [name:John OR email:*@example.com___]      │  │
+│  │                                    [ Search ]   │  │
+│  └────────────────────────────────────────────────┘  │
+│                                                        │
+│  Recent Searches:                                       │
+│  [ name:John ]  [ email:*@example.com ]               │
+│                                                        │
+│  Quick Filters:                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐│
+│  │ 📅 Modified  │  │ ✅ Active    │  │ 🔐 Privileged││
+│  │   Today      │  │   Identities │  │   Access     ││
+│  └──────────────┘  └──────────────┘  └──────────────┘│
+│                                                        │
+│  Search Results (12):                                  │
+│  ┌────────────────────────────────────────────────┐  │
+│  │ Name          │ Type      │ ID        │        │  │
+│  ├────────────────────────────────────────────────┤  │
+│  │ John Doe      │ identity  │ 12345     │ →      │  │
+│  │ John Smith    │ identity  │ 12346     │ →      │  │
+│  │ Admin Role    │ role      │ 78901     │ →      │  │
+│  └────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
+```
 
 ## Import and export the config of a tenant
 
 In the **SailPoint view**, right-click on a tenant to import or export config.
 
-![Import/export config](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/import-export-treeview.png)
+```
+┌─ SailPoint ISC Dev Tools ─────────────────────────────┐
+│                                                        │
+│  📁 company-dev                                        │
+│     ├─ 📁 Sources                                     │
+│     ├─ 📁 Transforms                                  │
+│     ├─ 📁 Workflows                                   │
+│     └─ 📁 Identity Profiles                           │
+│                                                        │
+│  Right-click on tenant →                              │
+│  ┌──────────────────────────────────────────────┐    │
+│  │  Export sp-config...                          │    │
+│  │  Import sp-config...                         │    │
+│  │  ────────────────────────────────────────────│    │
+│  │  Manage Tenant Sync                          │    │
+│  │  Global Search                               │    │
+│  └──────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────┘
+```
 
 You can also export a single source, rule, identity profile or transform by right-clicking it and choosing "Export sp-config...".
 
-![Import/export config](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/export-node.png)
+```
+┌─ SailPoint ISC Dev Tools ─────────────────────────────┐
+│                                                        │
+│  📁 company-dev                                        │
+│     📁 Sources                                         │
+│        🔌 Active Directory                            │
+│           Right-click →                                │
+│           ┌──────────────────────────────────────┐   │
+│           │  Export sp-config...                 │   │
+│           │  View Source                          │   │
+│           │  Edit Source                          │   │
+│           │  ────────────────────────────────────│   │
+│           │  Aggregate                            │   │
+│           │  Test Connection                      │   │
+│           └──────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────┘
+```
 
 Or, from the **Command Palette**, find the command "ISC: Import config..." or "ISC: Export config...".
 
-![Import/export config](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/import-export-palette.png)
-
-![Export config](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/export-config.gif)
+```
+┌─────────────────────────────────────────────────────────┐
+│  VS Code Command Palette (Ctrl+Shift+P)                │
+├─────────────────────────────────────────────────────────┤
+│  > ISC: Export config...                               │
+│    ISC: Import config...                                │
+│    ISC: Add tenant...                                  │
+│    ISC: Global Search...                               │
+│    ────────────────────────────────────────────────────│
+│                                                          │
+│  Export Process:                                        │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Exporting sp-config...                          │  │
+│  │  [████████████████████████████] 100%             │  │
+│  │                                                   │  │
+│  │  ✓ Sources (15)                                  │  │
+│  │  ✓ Transforms (42)                               │  │
+│  │  ✓ Workflows (8)                                  │  │
+│  │  ✓ Identity Profiles (3)                        │  │
+│  │                                                   │  │
+│  │  Saved to: exportedObjects/config.json           │  │
+│  └──────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
 
 Finally, you can right-click a JSON file in the explorer to import it.
 
-![Import/export config](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/import-file.png)
+```
+┌─ Explorer ────────────────────────────────────────────┐
+│                                                        │
+│  📁 project                                            │
+│     📁 exportedObjects                                 │
+│        📄 config.json  ← Right-click                  │
+│        📄 source-ad.json                              │
+│        📄 transform-email.json                        │
+│                                                        │
+│  Context Menu:                                         │
+│  ┌──────────────────────────────────────────────┐    │
+│  │  Import sp-config...                         │    │
+│  │  ────────────────────────────────────────────│    │
+│  │  Open                                         │    │
+│  │  Open With...                                 │    │
+│  └──────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────┘
+```
 
 ## Rule management
 
 The extension allows you to manage rules and upload the script to a new or existing rule:
 
-![Export config](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/rules-management.gif)
+```
+┌─ Rule Editor ─────────────────────────────────────────┐
+│                                                        │
+│  Rule: Account Aggregation                        │
+│  Tenant: company-dev                                 │
+│                                                        │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  Script Editor                                 │  │
+│  │  ┌──────────────────────────────────────────┐ │  │
+│  │  │  // Connector Rule Script                │ │  │
+│  │  │  import sailpoint.api.*                  │ │  │
+│  │  │                                          │ │  │
+│  │  │  def result = new HashMap()             │ │  │
+│  │  │  result.put("displayName", ...)           │ │  │
+│  │  │  return result                            │ │  │
+│  │  └──────────────────────────────────────────┘ │  │
+│  │                                                 │  │
+│  │  [ Test Rule ]  [ Save ]  [ Cancel ]          │  │
+│  └────────────────────────────────────────────────┘  │
+│                                                        │
+│  Test Results:                                         │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  ✓ Rule executed successfully                 │  │
+│  │  Output: { displayName: "John Doe" }          │  │
+│  └────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
+```
 
 ## Workflow management
 
@@ -83,11 +322,84 @@ Export and Import workflows automatically:
 
 The extension allows you to test the workflow:
 
-![Export config](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/test-workflow.gif)
+```
+┌─ Workflow Editor ─────────────────────────────────────┐
+│                                                        │
+│  Workflow: Onboarding Process                        │
+│  Tenant: company-dev                                 │
+│                                                        │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  Workflow Steps                                │  │
+│  │                                                │  │
+│  │  [Start] → [Create Account] → [Send Email]    │  │
+│  │              ↓                                  │  │
+│  │         [End Success]                          │  │
+│  └────────────────────────────────────────────────┘  │
+│                                                        │
+│  Test Workflow:                                       │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  Input JSON:                                   │  │
+│  │  {                                             │  │
+│  │    "identityId": "12345",                      │  │
+│  │    "sourceId": "67890"                         │  │
+│  │  }                                             │  │
+│  │                                                 │  │
+│  │  [ Run Test ]                                  │  │
+│  │                                                 │  │
+│  │  Execution Result:                             │  │
+│  │  ✓ Step 1: Create Account - Success           │  │
+│  │  ✓ Step 2: Send Email - Success               │  │
+│  │  Status: COMPLETED                             │  │
+│  └────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
+```
 
 ## Snippets
 
-![Snippets for transforms](https://raw.githubusercontent.com/yannick-beot-sp/vscode-sailpoint-identitynow/main/resources/readme/snippet-transforms.gif)
+The extension provides code snippets for quick development:
+
+```
+┌─ Transform Editor ───────────────────────────────────┐
+│                                                        │
+│  Type: tr-concat                                      │
+│                                                        │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  {                                              │  │
+│  │    "type": "concat",                            │  │
+│  │    "attributes": {                              │  │
+│  │      "values": [                                │  │
+│  │        {                                        │  │
+│  │          "type": "identityAttribute",           │  │
+│  │          "attributes": {                        │  │
+│  │            "name": "firstName"                  │  │
+│  │          }                                      │  │
+│  │        },                                       │  │
+│  │        {                                        │  │
+│  │          "type": "static",                     │  │
+│  │          "attributes": {                        │  │
+│  │            "value": " "                        │  │
+│  │          }                                      │  │
+│  │        },                                       │  │
+│  │        {                                        │  │
+│  │          "type": "identityAttribute",           │  │
+│  │          "attributes": {                        │  │
+│  │            "name": "lastName"                   │  │
+│  │          }                                      │  │
+│  │        }                                        │  │
+│  │      ]                                          │  │
+│  │    }                                            │  │
+│  │  }                                              │  │
+│  └────────────────────────────────────────────────┘  │
+│                                                        │
+│  Available Snippets:                                  │
+│  • tr-acc      - Account Attribute                    │
+│  • tr-concat   - Concatenation                        │
+│  • tr-date-*   - Date operations                     │
+│  • tr-lookup   - Lookup                              │
+│  • tr-rule     - Rule reference                      │
+│  • ... and many more                                 │
+└────────────────────────────────────────────────────────┘
+```
 
 ### Transforms
 
@@ -406,33 +718,33 @@ The external JSON trigger is:
 
 The extension supports the following settings:
 
-- `vscode-sailpoint-identitynow.report.accessProfiles.filename`: Define the pattern for the folder to export access profiles.
+- `sp-isc-devtools.report.accessProfiles.filename`: Define the pattern for the folder to export access profiles.
   - Default value: `%x/reports/%T-AccessProfiles-%y%M%d-%h%m%s.csv`
-- `vscode-sailpoint-identitynow.report.accounts.filename`: Define the pattern for the folder to export accounts.
+- `sp-isc-devtools.report.accounts.filename`: Define the pattern for the folder to export accounts.
   - Default value: `%x/reports/%T-%S-Accounts-%y%M%d-%h%m%s.csv`
-- `vscode-sailpoint-identitynow.report.uncorrelatedAccounts.filename`: Define the pattern for the folder to export uncorrelated accounts.
+- `sp-isc-devtools.report.uncorrelatedAccounts.filename`: Define the pattern for the folder to export uncorrelated accounts.
   - Default value: `%x/reports/%T-%S-Uncorrelated-Accounts-%y%M%d-%h%m%s.csv`
-- `vscode-sailpoint-identitynow.report.entitlements.filename`: Define the pattern for the folder to export entitlement details.
+- `sp-isc-devtools.report.entitlements.filename`: Define the pattern for the folder to export entitlement details.
   - Default value: `%x/reports/%T-%S-Entitlements-%y%M%d-%h%m%s.csv`
-- `vscode-sailpoint-identitynow.report.roles.filename`: Define the pattern for the folder to export roles.
+- `sp-isc-devtools.report.roles.filename`: Define the pattern for the folder to export roles.
   - Default value: `%x/reports/%T-Roles-%y%M%d-%h%m%s.csv`
-- `vscode-sailpoint-identitynow.sP-Config.singleResource.filename`: Define the pattern for the SP-Config file of a single resource (Source, Identity Profile, Connector Rule, or Transform).
+- `sp-isc-devtools.sP-Config.singleResource.filename`: Define the pattern for the SP-Config file of a single resource (Source, Identity Profile, Connector Rule, or Transform).
   - Default value: `%x/exportedObjects/identitynowconfig-%t-%S-%y%M%d-%h%m%s.json`
-- `vscode-sailpoint-identitynow.sP-Config.singleFile.filename`: Define the pattern for the SP-Config file as a single file for multiple resources
+- `sp-isc-devtools.sP-Config.singleFile.filename`: Define the pattern for the SP-Config file as a single file for multiple resources
   - Default value: `%x/exportedObjects/identitynowconfig-%t-%y%M%d-%h%m%s.json`
-- `vscode-sailpoint-identitynow.sP-Config.multipleFiles.folder`: Define the pattern for the SP-Config folder as multiple files for multiple resources. This folder is proposed.
+- `sp-isc-devtools.sP-Config.multipleFiles.folder`: Define the pattern for the SP-Config folder as multiple files for multiple resources. This folder is proposed.
   - Default value: `%x/exportedObjects`
-- `vscode-sailpoint-identitynow.sP-Config.multipleFiles.filename`: Define the pattern for the SP-Config filename as multiple files for multiple resources. It will be concatenated to the export folder. These filenames are not confirmed.
+- `sp-isc-devtools.sP-Config.multipleFiles.filename`: Define the pattern for the SP-Config filename as multiple files for multiple resources. It will be concatenated to the export folder. These filenames are not confirmed.
   - Default value: `%o/%S.json`
-- `vscode-sailpoint-identitynow.export.forms.filename`: Define the pattern to export forms from a tenant
+- `sp-isc-devtools.export.forms.filename`: Define the pattern to export forms from a tenant
   - Default value: `%x/Forms/Forms-%t-%y%M%d-%h%m%s.json`
-- `vscode-sailpoint-identitynow.export.form.filename`: Define the pattern to export a single form from a tenant
+- `sp-isc-devtools.export.form.filename`: Define the pattern to export a single form from a tenant
   - Default value: `%x/Forms/Form-%t-%S-%y%M%d-%h%m%s.json`
-- `vscode-sailpoint-identitynow.export.workflow.filename`: Define the pattern to export a single workflow from a tenant
+- `sp-isc-devtools.export.workflow.filename`: Define the pattern to export a single workflow from a tenant
   - Default value: `%x/Workflows/Workflow-%t-%S-%y%M%d-%h%m%s.json`
-- `vscode-sailpoint-identitynow.treeView.pagination`: Define the number of roles and access profiles that are displayed in the tree view
+- `sp-isc-devtools.treeView.pagination`: Define the number of roles and access profiles that are displayed in the tree view
   - Default value: 100
-- `vscode-sailpoint-identitynow.report.campaigns.filename`: Define the pattern for the folder to export access profiles.
+- `sp-isc-devtools.report.campaigns.filename`: Define the pattern for the folder to export access profiles.
 
   - Default value: `%x/reports/%T-Campaign-%S-%y%M%d-%h%m%s.csv`
     The patterns defined above use the following tokens:
@@ -450,6 +762,26 @@ The extension supports the following settings:
 - `%T`: Tenant display name
 - `%o`: Object type
 - `%S`: Source name for source-based report or object name
+
+## Recent Updates
+
+### Version 0.0.2
+
+- **New Search Features**:
+  - Added search box to all entity list views (identities, roles, access profiles, etc.) for real-time filtering
+  - Created dedicated global search page with SailPoint search query support
+  - Added recent searches and quick filters for common search scenarios
+  - Search results are clickable and open resources directly
+- **Architecture Improvements**:
+  - Implemented Sync Manager for background tenant synchronization
+  - Added State Engine for in-memory caching of tenant data
+  - Created Adapter Layer for API-agnostic data access
+  - Implemented Command Bus for centralized command handling
+  - Added pagination support (250 items per page)
+- **UI Enhancements**:
+  - Reorganized navigation hierarchy with categories
+  - Added sync management page for tenant synchronization control
+  - Improved tree view with sync status indicators
 
 ## Release Notes
 

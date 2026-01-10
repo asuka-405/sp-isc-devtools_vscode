@@ -1,53 +1,215 @@
-name: publish extension
+name: Publish Extension
+
 on:
-  pull_request:
-    branches: [main]
   push:
     branches:
       - main
-    tags:
-      - '**'
+    paths:
+      - 'package.json'
   workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish even if version unchanged'
+        required: false
+        default: false
+        type: boolean
+
 jobs:
-  build:
-    runs-on: windows-latest
+  detect-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      changed: ${{ steps.changed.outputs.changed }}
+      should_publish: ${{ steps.should_publish.outputs.should_publish }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-    - name: Install the dependencies
-      run: npm ci
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-    - name: Install vsce
-      run: npm i -g @vscode/vsce
-    # - run: xvfb-run -a npm test
-    #   if: runner.os == 'Linux'
-    # - run: npm test
-    #   if: runner.os != 'Linux'
-    # added --allow-package-secrets sendgrid to prevent false positive on the code SG.commands.executeCommand
-    # SendGrid is not used at all
-    # cf. https://github.com/yannick-beot-sp/vscode-sailpoint-identitynow/actions/runs/16379580167/job/46287795609#step:6:89
-    - name: Compile and create vsix
-      run: vsce package --allow-package-secrets sendgrid
-    - name: Upload vsix as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        path: ${{github.workspace}}/sp-isc-devtools-*.vsix
+      - name: Get current version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
 
-    - name: Extract tag name
-      id: tag
-      if: startsWith(github.ref, 'refs/tags/releases/')
-      run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: success() && startsWith(github.ref, 'refs/tags/releases/')
-      with:
-        tag_name: ${{ steps.tag.outputs.tag_name }}
-        files: sp-isc-devtools-*.vsix
-        generate_release_notes: true
-    - name: Publish
-      if: success() && startsWith( github.ref, 'refs/tags/releases/')
-      run: vsce publish -p ${{ secrets.VSCE_PAT }} --allow-package-secrets sendgrid
+      - name: Check if version changed
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.force_publish }}" == "true" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Force publish requested"
+          elif [ "${{ github.event_name }}" == "push" ] && [ -f package.json ]; then
+            # Check if package.json was modified in this commit
+            if git diff HEAD~1 HEAD --name-only | grep -q "package.json"; then
+              # Get old version from previous commit
+              OLD_VERSION=$(git show HEAD~1:package.json 2>/dev/null | grep -o '"version": "[^"]*"' | cut -d'"' -f4 || echo "")
+              # Get new version from current commit
+              NEW_VERSION=$(node -p "require('./package.json').version")
+              
+              if [ -z "$OLD_VERSION" ]; then
+                echo "changed=false" >> $GITHUB_OUTPUT
+                echo "Could not determine old version (possibly first commit)"
+              elif [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+                echo "changed=true" >> $GITHUB_OUTPUT
+                echo "Version changed from $OLD_VERSION to $NEW_VERSION"
+              else
+                echo "changed=false" >> $GITHUB_OUTPUT
+                echo "Version unchanged: $NEW_VERSION"
+              fi
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "package.json not modified in this commit"
+            fi
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Not a push event or package.json not found"
+          fi
+
+      - name: Determine if should publish
+        id: should_publish
+        run: |
+          if [ "${{ steps.changed.outputs.changed }}" == "true" ]; then
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "Will publish extension"
+          else
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+            echo "Skipping publish - version unchanged"
+          fi
+
+  build:
+    needs: detect-version
+    if: needs.detect-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Install ovsx
+        run: npm install -g ovsx
+
+      - name: Build extension
+        run: npm run esbuild
+
+      - name: Package extension
+        run: vsce package --allow-package-secrets sendgrid --out sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-vsix
+          path: sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix
+          retention-days: 30
+
+      - name: Display VSIX info
+        run: |
+          echo "VSIX file created: sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix"
+          ls -lh sp-isc-devtools-*.vsix
+
+  publish-vscode:
+    needs: [detect-version, build]
+    if: needs.detect-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: vscode-marketplace
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-vsix
+          path: .
+
+      - name: Publish to VS Code Marketplace
+        run: |
+          vsce publish -p ${{ secrets.VSCE_PAT }} --allow-package-secrets sendgrid
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        continue-on-error: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.detect-version.outputs.version }}
+          name: Release v${{ needs.detect-version.outputs.version }}
+          files: sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-openvsx:
+    needs: [detect-version, build]
+    if: needs.detect-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: openvsx-marketplace
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install ovsx
+        run: npm install -g ovsx
+
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-vsix
+          path: .
+
+      - name: Publish to Open VSX Marketplace
+        run: |
+          ovsx publish sp-isc-devtools-${{ needs.detect-version.outputs.version }}.vsix -p ${{ secrets.OVSX_TOKEN }}
+        env:
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+        continue-on-error: true
+
+  notify:
+    needs: [detect-version, publish-vscode, publish-openvsx]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish status
+        run: |
+          if [ "${{ needs.detect-version.outputs.should_publish }}" == "true" ]; then
+            if [ "${{ needs.publish-vscode.result }}" == "success" ] && [ "${{ needs.publish-openvsx.result }}" == "success" ]; then
+              echo "✅ Successfully published v${{ needs.detect-version.outputs.version }} to both marketplaces"
+            elif [ "${{ needs.publish-vscode.result }}" == "success" ]; then
+              echo "⚠️ Published to VS Code Marketplace but Open VSX failed"
+            elif [ "${{ needs.publish-openvsx.result }}" == "success" ]; then
+              echo "⚠️ Published to Open VSX but VS Code Marketplace failed"
+            else
+              echo "❌ Publishing failed for both marketplaces"
+            fi
+          else
+            echo "ℹ️ Version unchanged, skipping publish"
+          fi

@@ -107,14 +107,25 @@ export class TenantTreeItem extends BaseTreeItem {
 		tooltip += `Display Name: ${tenantInfo?.name || 'N/A'}\n`;
 		
 		if (syncInfo) {
-			tooltip += `Sync State: ${syncInfo.state}\n`;
+			tooltip += `\nSync State: ${syncInfo.state}\n`;
 			tooltip += `Health: ${syncInfo.health}\n`;
 			if (syncInfo.lastSyncTimestamp) {
 				tooltip += `Last Sync: ${new Date(syncInfo.lastSyncTimestamp).toLocaleString()}\n`;
 			}
 			if (syncInfo.errorMessage) {
-				tooltip += `Error: ${syncInfo.errorMessage}\n`;
+				tooltip += `\nError: ${syncInfo.errorMessage}\n`;
 			}
+			
+			// Add helpful context
+			if (syncInfo.state === SyncState.ACTIVE_SYNC) {
+				tooltip += `\n💡 Background sync active - data refreshes every 60 seconds`;
+			} else if (syncInfo.state === SyncState.PAUSED) {
+				tooltip += `\n💡 Sync paused - click to activate or manually refresh`;
+			} else if (syncInfo.state === SyncState.ERROR) {
+				tooltip += `\n⚠️ Sync error - check connection and credentials`;
+			}
+		} else {
+			tooltip += `\n💡 Click to manage tenant sync settings`;
 		}
 		
 		return tooltip;

@@ -162,6 +162,9 @@ export class HomePanel {
                 this.navigationState.searchResults = [];
                 await this._update();
                 break;
+            case 'showHelp':
+                await this.handleShowHelp(message.helpKey);
+                break;
             case 'globalSearch':
                 // Navigate to search page
                 this.navigateToSearch(
@@ -276,6 +279,31 @@ export class HomePanel {
             await this._update();
         } else {
             vscode.window.showWarningMessage('Cannot activate sync: Maximum of 4 active sync tenants reached.');
+        }
+    }
+
+    private async handleShowHelp(helpKey: string): Promise<void> {
+        try {
+            const { HelpService } = await import('../../services/HelpService');
+            const helpService = HelpService.getInstance();
+            const help = helpService.getHelp(helpKey);
+            
+            if (help) {
+                const message = help.link 
+                    ? `${help.title}\n\n${help.content}\n\nLearn more: ${help.link}`
+                    : `${help.title}\n\n${help.content}`;
+                
+                vscode.window.showInformationMessage(message, ...(help.link ? ['Open Documentation'] : []))
+                    .then(selection => {
+                        if (selection === 'Open Documentation' && help.link) {
+                            vscode.env.openExternal(vscode.Uri.parse(help.link));
+                        }
+                    });
+            } else {
+                vscode.window.showInformationMessage('Help content not available for this item.');
+            }
+        } catch (error) {
+            console.error('[HomePanel] Error showing help:', error);
         }
     }
 
@@ -609,7 +637,7 @@ export class HomePanel {
                             <span class="action-title">Documentation</span>
                             <span class="action-desc">SailPoint Developer Portal</span>
                         </button>
-                        <button class="action-btn" onclick="openSyncManagement()">
+                        <button class="action-btn" onclick="openSyncManagement()" title="Manage tenant synchronization settings. Activate/pause sync for up to 4 tenants simultaneously.">
                             <span class="action-title">Manage Tenant Sync</span>
                             <span class="action-desc">Control background synchronization</span>
                         </button>
@@ -790,8 +818,8 @@ export class HomePanel {
                                             </td>
                                             <td class="cell-action">
                                                 ${isActive 
-                                                    ? `<button class="btn btn-small btn-secondary" onclick="pauseSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;">Pause</button>`
-                                                    : `<button class="btn btn-small btn-primary" onclick="resumeSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;" ${isLimitReached ? 'disabled' : ''}>Activate</button>`
+                                                    ? `<button class="btn btn-small btn-secondary" onclick="pauseSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;" title="Pause background synchronization. Cached data remains available.">Pause</button>`
+                                                    : `<button class="btn btn-small btn-primary" onclick="resumeSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;" ${isLimitReached ? 'disabled' : ''} title="${isLimitReached ? 'Maximum 4 tenants can sync simultaneously. Pause another tenant first.' : 'Activate background synchronization. Data refreshes every 60 seconds.'}">Activate</button>`
                                                 }
                                             </td>
                                         </tr>
@@ -858,11 +886,11 @@ export class HomePanel {
                         <p class="subtitle">Search across SailPoint ISC resources</p>
                     </div>
                     <div class="header-actions">
-                        <button class="btn btn-secondary" onclick="clearSearch()">Clear</button>
+                        <button class="btn btn-secondary" onclick="clearSearch()" title="Clear search query and results">Clear</button>
                     </div>
                 </div>
                 
-                <div class="search-container" style="margin-bottom: 24px; max-width: 600px;">
+                <div class="search-container" style="margin-bottom: 24px; max-width: 600px; position: relative;">
                     <span class="search-icon">🔍</span>
                     <input 
                         type="text" 
@@ -870,8 +898,10 @@ export class HomePanel {
                         placeholder="Enter search query (e.g., name:John OR email:*@example.com)..." 
                         value="${this.esc(searchQuery)}"
                         onkeydown="if(event.key === 'Enter') performSearch()"
+                        title="Use SailPoint search syntax: field:value, field:*pattern*, AND/OR operators"
                     />
-                    <button class="btn btn-primary" onclick="performSearch()" style="margin-left: 8px;">Search</button>
+                    <button class="btn btn-primary" onclick="performSearch()" style="margin-left: 8px;" title="Search across all SailPoint ISC resources">Search</button>
+                    <span class="help-icon" title="Use SailPoint search syntax: field:value, field:*pattern*, AND/OR operators. Example: name:John OR email:*@example.com" onclick="showHelp('search.query')">ℹ️</span>
                 </div>
                 
                 ${history.length > 0 ? `
@@ -879,7 +909,7 @@ export class HomePanel {
                         <h3 class="section-title" style="font-size: 14px; margin-bottom: 8px;">Recent Searches</h3>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                             ${history.slice(0, 5).map((h: string) => `
-                                <button class="btn btn-small btn-secondary" onclick="searchHistory('${this.esc(h)}')" style="font-size: 12px; padding: 4px 12px;">
+                                <button class="btn btn-small btn-secondary" onclick="searchHistory('${this.esc(h)}')" style="font-size: 12px; padding: 4px 12px;" title="Click to reuse this search query">
                                     ${this.esc(h)}
                                 </button>
                             `).join('')}
@@ -889,6 +919,7 @@ export class HomePanel {
                 
                 <section class="section" style="margin-bottom: 24px;">
                     <h3 class="section-title" style="font-size: 14px; margin-bottom: 8px;">Quick Filters</h3>
+                    <p style="font-size: 12px; color: var(--fg-2); margin-bottom: 8px;">Pre-built search filters for common scenarios</p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
                         ${quickFilters.map((filter: any) => `
                             <button class="action-btn" onclick="applyQuickFilter('${this.esc(filter.query)}', ${JSON.stringify(filter.indices)})" style="text-align: left; padding: 12px;">
@@ -1042,12 +1073,12 @@ export class HomePanel {
                         <p class="subtitle">Showing ${showingFrom}-${showingTo} of ${totalCount} item${totalCount !== 1 ? 's' : ''}${totalCount > 250 ? ' (paginated)' : ''}</p>
                     </div>
                     <div class="header-actions">
-                        ${entityType === 'rules' ? `<button class="btn btn-primary" onclick="newRule()">New Rule</button>` : ''}
-                        <button class="btn btn-secondary" onclick="refreshEntityList()">Refresh</button>
+                        ${entityType === 'rules' ? `<button class="btn btn-primary" onclick="newRule()" title="Create a new connector rule">New Rule</button>` : ''}
+                        <button class="btn btn-secondary" onclick="refreshEntityList()" title="Refresh data from SailPoint ISC API">Refresh</button>
                     </div>
                 </div>
                 
-                <div class="search-container" style="margin-bottom: 16px;">
+                <div class="search-container" style="margin-bottom: 16px; position: relative;">
                     <span class="search-icon">🔍</span>
                     <input 
                         type="text" 
@@ -1056,8 +1087,10 @@ export class HomePanel {
                         value="${this.esc(this.searchQuery || '')}"
                         oninput="handleEntitySearch(this.value)"
                         onkeydown="if(event.key === 'Enter') handleEntitySearch(this.value)"
+                        title="Search filters the currently loaded page. Use Global Search for advanced queries across all resources."
                     />
                     ${this.searchQuery ? `<button class="btn btn-small" onclick="clearEntitySearch()" style="margin-left: 8px; padding: 4px 8px; font-size: 12px;">Clear</button>` : ''}
+                    <span class="help-icon" title="Search filters the currently loaded page. Use Global Search for advanced queries across all resources." onclick="showHelp('search.entity')">ℹ️</span>
                 </div>
                 
                 ${filtered.length > 0 ? `
@@ -1088,13 +1121,13 @@ export class HomePanel {
                     ${totalCount > this.entityListPagination.limit ? `
                         <div class="pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 12px;">
                             <div>
-                                <button class="btn btn-small btn-secondary" onclick="previousPage()" ${this.entityListPagination.offset === 0 ? 'disabled' : ''} style="font-size: 12px; padding: 4px 8px;">Previous</button>
-                                <span style="margin: 0 12px; color: var(--fg-2); font-size: 13px;">
+                                <button class="btn btn-small btn-secondary" onclick="previousPage()" ${this.entityListPagination.offset === 0 ? 'disabled' : ''} style="font-size: 12px; padding: 4px 8px;" title="Go to previous page">Previous</button>
+                                <span style="margin: 0 12px; color: var(--fg-2); font-size: 13px;" title="Maximum 250 items per page">
                                     Page ${currentPage} of ${totalPages}
                                 </span>
-                                <button class="btn btn-small btn-secondary" onclick="nextPage()" ${!hasMore ? 'disabled' : ''} style="font-size: 12px; padding: 4px 8px;">Next</button>
+                                <button class="btn btn-small btn-secondary" onclick="nextPage()" ${!hasMore ? 'disabled' : ''} style="font-size: 12px; padding: 4px 8px;" title="Go to next page">Next</button>
                             </div>
-                            <div style="color: var(--fg-2); font-size: 12px;">
+                            <div style="color: var(--fg-2); font-size: 12px;" title="Results are paginated with a maximum of 250 items per page">
                                 ${this.entityListPagination.limit} per page
                             </div>
                         </div>
@@ -1127,6 +1160,10 @@ export class HomePanel {
                 function clearEntitySearch() {
                     document.getElementById('entitySearchInput').value = '';
                     vscode.postMessage({ command: 'entitySearch', query: '' });
+                }
+                
+                function showHelp(helpKey) {
+                    vscode.postMessage({ command: 'showHelp', helpKey: helpKey });
                 }
             </script>
         `;
@@ -1284,6 +1321,59 @@ export class HomePanel {
             }
             
             .search-container:focus-within { border-color: var(--accent); }
+            
+            .help-icon {
+                margin-left: 8px;
+                cursor: help;
+                color: var(--fg-2);
+                font-size: 14px;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            
+            .help-icon:hover {
+                opacity: 1;
+                color: var(--accent);
+            }
+            
+            .help-tooltip {
+                position: absolute;
+                background: var(--bg-2);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 12px;
+                max-width: 300px;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                display: none;
+                font-size: 13px;
+                line-height: 1.5;
+            }
+            
+            .help-tooltip.show {
+                display: block;
+            }
+            
+            .help-tooltip-title {
+                font-weight: 600;
+                color: var(--fg-0);
+                margin-bottom: 6px;
+            }
+            
+            .help-tooltip-content {
+                color: var(--fg-1);
+                margin-bottom: 8px;
+            }
+            
+            .help-tooltip-link {
+                color: var(--accent);
+                text-decoration: none;
+                font-size: 12px;
+            }
+            
+            .help-tooltip-link:hover {
+                text-decoration: underline;
+            }
             
             /* Main */
             .main { flex: 1; overflow-y: auto; }
