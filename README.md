@@ -31,7 +31,7 @@ The SailPoint ISC Dev Tools extension makes it easy to:
 - **Workflow Management**: View, edit, enable, disable, export, import workflows and view execution history
 - **Rule Management**: View, create, edit, delete connector rules and export/import the script of a rule
 - **Service Desk**: View, edit, delete service desk integrations
-- **Identity Management**: View, edit, delete identity profiles and lifecycle states, refresh identities, search identities
+- **Identity Management**: View, edit, delete identity profiles and lifecycle states, refresh identities, search identities, comprehensive Identity Editor Panel with details, events, access, accounts, and work reassignment views
 - **Data Import/Export**: Import/Export Accounts (import for delimited files only), uncorrelated accounts, entitlement details
 - **Access Management**: View, edit, create, delete, export, import access profiles
 - **Role Management**: View, edit, create, delete, export, import roles, and dimensions
@@ -777,6 +777,24 @@ The extension supports the following settings:
 - `%S`: Source name for source-based report or object name
 
 ## Release Notes
+
+### Version 0.1.4
+
+- **Identity Editor Panel**: New comprehensive identity view with multiple tabs:
+  - **Details Tab**: View all identity attributes with pinning functionality, basic information display
+  - **Events Tab**: View all SailPoint events related to the identity
+  - **Access Tab**: View all assigned access items (roles, access profiles, entitlements)
+  - **Accounts Tab**: View all source accounts linked to the identity
+  - **Work Reassignment Tab**: View active or scheduled reassignments for the identity
+- **Identity Action Buttons**: Added action buttons for identity management (coming soon in next version):
+  - Process Identity
+  - Set User Level
+  - Sync Attributes
+  - Set Lifecycle State
+  - Disable Identity
+  - Reset Identity
+  - Reset Password
+  - Delete Identity
 
 ### Version 0.1.2
 
