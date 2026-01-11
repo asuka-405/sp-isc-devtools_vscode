@@ -3,6 +3,10 @@
   <h1>SailPoint ISC Dev Tools for Visual Studio Code</h1>
 </div>
 
+> ⚠️ **UNDER DEVELOPMENT - VERY UNSTABLE** ⚠️
+> 
+> This extension is currently under active development and is **very unstable**. Many features are missing or incomplete. We welcome user recommendations and feedback to help shape the extension. Please report issues and suggest features via GitHub Issues.
+> 
 > This extension is not developed, maintained or supported by SailPoint.
 > It is a community effort to help manage Identity Security Cloud from Visual Studio Code.
 
