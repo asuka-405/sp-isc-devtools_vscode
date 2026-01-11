@@ -333,6 +333,33 @@ export class AdapterLayer {
                         true
                     );
                     return parseInt(appsResp.headers['x-total-count'] || '0');
+                case 'sources':
+                    const sources = await client.getSources();
+                    return sources.length;
+                case 'transforms':
+                    const transforms = await client.getTransforms();
+                    return transforms.length;
+                case 'workflows':
+                    const workflows = await client.getWorflows();
+                    return workflows.length;
+                case 'identity-profiles':
+                    const identityProfiles = await client.getIdentityProfiles();
+                    return identityProfiles.length;
+                case 'rules':
+                    const rules = await client.getConnectorRules();
+                    return rules.length;
+                case 'forms':
+                    const forms = await client.listForms();
+                    return forms.length;
+                case 'governance-groups':
+                    const governanceGroups = await client.getGovernanceGroups();
+                    return governanceGroups.length;
+                case 'campaigns':
+                    const campaignsResp = await client.getPaginatedCampaigns('', 0, 0, true);
+                    return parseInt(campaignsResp.headers['x-total-count'] || '0');
+                case 'service-desk':
+                    const serviceDesks = await client.getServiceDesks();
+                    return serviceDesks.length;
                 default:
                     // For other types, return cached count or estimate
                     const objects = await this.getObjects(tenantId, type, { useCache: true });

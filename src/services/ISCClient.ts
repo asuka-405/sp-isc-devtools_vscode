@@ -1210,6 +1210,16 @@ export class ISCClient {
 		return Number(resp.headers[TOTAL_COUNT_HEADER]);
 	}
 
+	public async getTotalAccountCount(): Promise<number> {
+		console.log("> getTotalAccountCount");
+		const resp = await this.getAccounts({
+			count: true,
+			limit: 0,
+			offset: 0
+		});
+		return Number(resp.headers[TOTAL_COUNT_HEADER] || '0');
+	}
+
 	public async getAccountsBySource(sourceId: string, exportUncorrelatedAccountOnly = false, offset = 0, limit = DEFAULT_PAGINATION): Promise<Account[]> {
 		let filters = `sourceId eq "${sourceId}"`;
 		if (exportUncorrelatedAccountOnly) {
@@ -1320,6 +1330,16 @@ export class ISCClient {
 			offset: 0
 		});
 		return Number(resp.headers[TOTAL_COUNT_HEADER]);
+	}
+
+	public async getTotalEntitlementCount(): Promise<number> {
+		console.log("> getTotalEntitlementCount");
+		const resp = await this.getEntitlements({
+			count: true,
+			limit: 0,
+			offset: 0
+		});
+		return Number(resp.headers[TOTAL_COUNT_HEADER] || '0');
 	}
 
 	public async getEntitlementByName(sourceId: string, entitlementName: string): Promise<EntitlementBeta> {
@@ -2209,6 +2229,87 @@ export class ISCClient {
 		const api = new IdentitiesBetaApi(apiConfig, undefined, this.getAxiosWithInterceptors());
 
 		await api.deleteIdentity({ id: identityId });
+	}
+
+	public async patchIdentity(identityId: string, operations: Array<JsonPatchOperationBeta>): Promise<IdentityBeta> {
+		console.log("> patchIdentity", identityId);
+		// Use patchResource for identity updates
+		const path = `/beta/identities/${identityId}`;
+		return await this.patchResource(path, operations);
+	}
+
+	public async setIdentityLifecycleState(identityId: string, lifecycleStateId: string): Promise<void> {
+		console.log("> setIdentityLifecycleState", identityId, lifecycleStateId);
+		await this.patchIdentity(identityId, [
+			{
+				op: 'replace',
+				path: '/lifecycleStateId',
+				value: lifecycleStateId
+			}
+		]);
+	}
+
+	public async disableIdentity(identityId: string): Promise<void> {
+		console.log("> disableIdentity", identityId);
+		await this.patchIdentity(identityId, [
+			{
+				op: 'replace',
+				path: '/inactive',
+				value: true
+			}
+		]);
+	}
+
+	public async enableIdentity(identityId: string): Promise<void> {
+		console.log("> enableIdentity", identityId);
+		await this.patchIdentity(identityId, [
+			{
+				op: 'replace',
+				path: '/inactive',
+				value: false
+			}
+		]);
+	}
+
+	public async setIdentityPassword(identityId: string, password: string): Promise<void> {
+		console.log("> setIdentityPassword", identityId);
+		// Use the set-identity-password endpoint
+		const path = `/beta/identities/${identityId}/set-password`;
+		await this.createResource(path, {
+			password: password
+		});
+	}
+
+	public async resetIdentity(identityId: string): Promise<void> {
+		console.log("> resetIdentity", identityId);
+		// Reset identity typically means resetting correlation - uncorrelate all accounts
+		// This is done by setting identityId to null on all accounts
+		const accountsResp = await this.getAccounts({
+			filters: `identityId eq "${identityId}"`,
+			limit: 250,
+			offset: 0
+		});
+		const accounts = accountsResp.data || [];
+		
+		// Uncorrelate all accounts
+		for (const account of accounts) {
+			try {
+				await this.updateAccount(account.id, '');
+			} catch (error: any) {
+				console.error(`[ISCClient] Error uncorrelating account ${account.id}:`, error);
+			}
+		}
+	}
+
+	public async setIdentityUserLevel(identityId: string, standardLevel: string): Promise<void> {
+		console.log("> setIdentityUserLevel", identityId, standardLevel);
+		await this.patchIdentity(identityId, [
+			{
+				op: 'replace',
+				path: '/standardLevel',
+				value: standardLevel
+			}
+		]);
 	}
 
 	////////////////////////

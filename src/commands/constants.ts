@@ -171,6 +171,7 @@ export const OPEN_TRANSFORM_EDITOR = `${COMMAND_PREFIX}.open-transform-editor`;
 export const OPEN_ACCESS_PROFILE_EDITOR = `${COMMAND_PREFIX}.open-access-profile-editor`;
 export const OPEN_ROLE_EDITOR = `${COMMAND_PREFIX}.open-role-editor`;
 export const OPEN_WORKFLOW_EDITOR = `${COMMAND_PREFIX}.open-workflow-editor`;
+export const OPEN_IDENTITY_EDITOR = `${COMMAND_PREFIX}.open-identity-editor`;
 export const COMMIT_ENTITY = `${COMMAND_PREFIX}.commit-entity`;
 export const COMMIT_ALL = `${COMMAND_PREFIX}.commit-all`;
 export const REVERT_ENTITY = `${COMMAND_PREFIX}.revert-entity`;

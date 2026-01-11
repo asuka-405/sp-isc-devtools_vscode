@@ -40,6 +40,14 @@ The SailPoint ISC Dev Tools extension makes it easy to:
 - **Application Management**: View, edit, create, delete applications
 - **Certification Campaigns**: View, report, escalate, send reminders, reassign to access item owners or reassign based on a file, approve in bulk
 
+## Documentation
+
+For contributors and developers, comprehensive documentation is available in the [`docs/`](./docs/) directory:
+
+- **[Architecture Documentation](./docs/ARCHITECTURE.md)** - System architecture, core components, data flow, and design patterns
+- **[Contributing Guide](./docs/CONTRIBUTING.md)** - How to contribute, coding standards, and submission guidelines
+- **[Development Guide](./docs/DEVELOPMENT.md)** - Setup instructions, development workflow, and debugging
+
 ## Installation
 
 Go to the extension menu or press `Ctrl`+`Shift`+`X` and look for the extension "SailPoint ISC Dev Tools". Click on the button `Install`.
@@ -71,6 +79,8 @@ To build the extension from source:
    npm install -g @vscode/vsce
    vsce package
    ```
+
+For detailed development setup, see the [Development Guide](./docs/DEVELOPMENT.md).
 
 ## Add new tenant
 

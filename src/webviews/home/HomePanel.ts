@@ -6,6 +6,7 @@ import { LocalCacheService } from '../../services/cache/LocalCacheService';
 import { SyncManager } from '../../services/SyncManager';
 import { AdapterLayer } from '../../services/AdapterLayer';
 import * as commands from '../../commands/constants';
+import { Search } from 'sailpoint-api-client';
 
 type EntityType = 'sources' | 'transforms' | 'workflows' | 'identity-profiles' | 'rules' | 
                   'access-profiles' | 'roles' | 'forms' | 'governance-groups' | 'campaigns' |
@@ -13,7 +14,10 @@ type EntityType = 'sources' | 'transforms' | 'workflows' | 'identity-profiles' |
                   'identities' | 'identity-attributes' | 'search-attributes' | 'applications' |
                   'accounts' | 'access-history' | 'outliers' | 'activities' |
                   'entitlements' | 'role-insights' | 'metadata' | 'launchers' |
-                  'virtual-appliances' | 'integrations' | 'multi-host-sources' | 'credential-providers';
+                  'virtual-appliances' | 'integrations' | 'multi-host-sources' | 'credential-providers' |
+                  'email-templates' | 'reports' | 'event-triggers' | 'password-management' | 'parameter-storage' |
+                  'system-settings' | 'additional-settings' | 'security-settings' | 'configuration-hub' |
+                  'request-center' | 'approvals' | 'certifications' | 'campaign-filter';
 
 interface NavigationState {
     view: 'home' | 'tenant' | 'entity-list' | 'sync-management' | 'search' | 'automation';
@@ -35,6 +39,7 @@ export class HomePanel {
     private _disposables: vscode.Disposable[] = [];
     private navigationState: NavigationState = { view: 'home' };
     private entityCache: Map<string, any[]> = new Map();
+    private entityCountCache: Map<string, number> = new Map(); // Cache for entity counts
     private searchQuery: string = '';
     private recentItems: { type: string; name: string; tenantId: string; id: string; timestamp: number }[] = [];
     private entityListPagination: { offset: number; limit: number; total?: number } = { offset: 0, limit: 250 };
@@ -111,6 +116,9 @@ export class HomePanel {
             case 'executeAutomationTask':
                 await this.handleExecuteAutomationTask(message);
                 break;
+            case 'loadSourcesForDropdown':
+                await this.handleLoadSourcesForDropdown();
+                break;
             case 'executeTaskSearch':
                 await this.handleExecuteTaskSearch(message.taskId, message.query);
                 break;
@@ -133,6 +141,9 @@ export class HomePanel {
             case 'refreshSyncStatus':
                 await this._update();
                 break;
+            case 'updateSyncInterval':
+                await this.handleUpdateSyncInterval(message.intervalMs);
+                break;
             case 'entityListPreviousPage':
                 if (this.entityListPagination.offset > 0) {
                     this.entityListPagination.offset = Math.max(0, this.entityListPagination.offset - this.entityListPagination.limit);
@@ -149,6 +160,12 @@ export class HomePanel {
                 this.entityListPagination.offset = 0;
                 this.entityListPagination.total = undefined;
                 this.entityCache.clear();
+                // Clear count cache for this entity type
+                const entityTypeToRefresh = this.navigationState.entityType;
+                if (entityTypeToRefresh && this.navigationState.tenantId) {
+                    const countCacheKey = `${this.navigationState.tenantId}-${entityTypeToRefresh}-count`;
+                    this.entityCountCache.delete(countCacheKey);
+                }
                 await this._update();
                 break;
             case 'loadEntityList':
@@ -204,10 +221,16 @@ export class HomePanel {
                 break;
             case 'refresh':
                 this.entityCache.clear();
+                this.entityCountCache.clear(); // Clear count cache on refresh
                 await this._update();
                 break;
             case 'clearCache':
-                try { LocalCacheService.getInstance().clearAllCache(); vscode.window.showInformationMessage('Cache cleared'); } catch {}
+                try { 
+                    LocalCacheService.getInstance().clearAllCache(); 
+                    this.entityCache.clear();
+                    this.entityCountCache.clear(); // Clear count cache
+                    vscode.window.showInformationMessage('Cache cleared'); 
+                } catch {}
                 break;
             case 'exportConfig':
                 await vscode.commands.executeCommand(commands.EXPORT_CONFIG_PALETTE);
@@ -291,6 +314,9 @@ export class HomePanel {
                 case 'workflows':
                     await vscode.commands.executeCommand(commands.OPEN_WORKFLOW_EDITOR, args);
                     break;
+                case 'identities':
+                    await vscode.commands.executeCommand(commands.OPEN_IDENTITY_EDITOR, args);
+                    break;
                 default:
                     const uri = vscode.Uri.parse(`idn://${tenantInfo.tenantName}/${entityType}/${entityId}`);
                     await vscode.commands.executeCommand('vscode.open', uri);
@@ -314,6 +340,18 @@ export class HomePanel {
             await this._update();
         } else {
             vscode.window.showWarningMessage('Cannot activate sync: Maximum of 4 active sync tenants reached.');
+        }
+    }
+
+    private async handleUpdateSyncInterval(intervalMs: number): Promise<void> {
+        try {
+            const syncManager = SyncManager.getInstance();
+            await syncManager.setSyncIntervalMs(intervalMs);
+            const minutes = Math.round(intervalMs / 60000 * 10) / 10;
+            vscode.window.showInformationMessage(`Sync interval updated to ${minutes} minutes (${Math.round(intervalMs / 1000)}s)`);
+            await this._update();
+        } catch (error: any) {
+            vscode.window.showErrorMessage(`Failed to update sync interval: ${error.message}`);
         }
     }
 
@@ -376,6 +414,272 @@ export class HomePanel {
         }
     }
 
+    private async getEntityCount(entityType: EntityType): Promise<number> {
+        const tenantId = this.navigationState.tenantId;
+        
+        if (!tenantId) {
+            return 0;
+        }
+
+        try {
+            const adapterLayer = AdapterLayer.getInstance();
+            const tenantInfo = this.tenantService.getTenant(tenantId);
+            if (!tenantInfo) {
+                return 0;
+            }
+
+            // For ACTIVE_SYNC tenants, try to use cached data from StateEngine first
+            const syncState = adapterLayer['syncManager'].getSyncState(tenantId);
+            if (syncState === 'ACTIVE_SYNC') {
+                const stateEngine = adapterLayer['stateEngine'];
+                // Map EntityType to ObjectType for StateEngine cache lookup
+                const cacheableTypes: Partial<Record<EntityType, string>> = {
+                    'sources': 'sources',
+                    'transforms': 'transforms',
+                    'workflows': 'workflows',
+                    'identity-profiles': 'identity-profiles',
+                    'rules': 'rules',
+                    'access-profiles': 'access-profiles',
+                    'roles': 'roles',
+                    'forms': 'forms',
+                    'governance-groups': 'governance-groups',
+                    'campaigns': 'campaigns',
+                    'service-desk': 'service-desk',
+                    'identities': 'identities',
+                    'applications': 'applications'
+                };
+                const objectType = cacheableTypes[entityType];
+                if (objectType) {
+                    const cached = stateEngine.getObjectsByType(tenantId, objectType as any);
+                    if (cached.length > 0) {
+                        // Use cached count - much faster!
+                        return cached.length;
+                    }
+                }
+            }
+
+            // Map EntityType to ObjectType for AdapterLayer
+            const objectTypeMap: Record<EntityType, any> = {
+                'sources': 'sources',
+                'transforms': 'transforms',
+                'workflows': 'workflows',
+                'identity-profiles': 'identity-profiles',
+                'rules': 'rules',
+                'access-profiles': 'access-profiles',
+                'roles': 'roles',
+                'forms': 'forms',
+                'governance-groups': 'governance-groups',
+                'campaigns': 'campaigns',
+                'service-desk': 'service-desk',
+                'identities': 'identities',
+                'applications': 'applications',
+                'notification-templates': undefined,
+                'tags': undefined,
+                'identity-attributes': undefined,
+                'search-attributes': undefined,
+                'accounts': undefined,
+                'access-history': undefined,
+                'outliers': undefined,
+                'activities': undefined,
+                'entitlements': undefined,
+                'role-insights': undefined,
+                'metadata': undefined,
+                'segments': 'segments', // Segments has an API
+                'launchers': undefined,
+                'virtual-appliances': undefined,
+                'integrations': undefined,
+                'multi-host-sources': undefined,
+                'credential-providers': undefined,
+                'email-templates': undefined,
+                'reports': undefined,
+                'event-triggers': undefined,
+                'password-management': undefined,
+                'parameter-storage': undefined,
+                'system-settings': undefined,
+                'additional-settings': undefined,
+                'security-settings': undefined,
+                'configuration-hub': undefined,
+                'request-center': undefined,
+                'approvals': undefined,
+                'certifications': undefined,
+                'campaign-filter': undefined
+            };
+
+            const objectType = objectTypeMap[entityType];
+            
+            const client = new ISCClient(tenantId, tenantInfo.tenantName);
+            
+            if (objectType) {
+                // For types with count API support, use them directly
+                switch (objectType) {
+                    case 'access-profiles':
+                        // Use count API directly (don't rely on cache)
+                        try {
+                            const apResponse = await client.getAccessProfiles({
+                                limit: 0,
+                                offset: 0,
+                                count: true
+                            });
+                            return parseInt(apResponse.headers['x-total-count'] || '0');
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get access-profiles count:', error);
+                            return 0;
+                        }
+                    case 'roles':
+                        // Use count API directly (don't rely on cache)
+                        try {
+                            const rolesResponse = await client.getRoles({
+                                limit: 0,
+                                offset: 0,
+                                count: true
+                            });
+                            return parseInt(rolesResponse.headers['x-total-count'] || '0');
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get roles count:', error);
+                            return 0;
+                        }
+                    case 'identities':
+                        // Use count API directly
+                        try {
+                            const identitiesResp = await client.listIdentities({
+                                limit: 0,
+                                offset: 0,
+                                count: true
+                            });
+                            return parseInt(identitiesResp.headers['x-total-count'] || '0');
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get identities count:', error);
+                            return 0;
+                        }
+                    case 'applications':
+                        // Use count API directly
+                        try {
+                            const appsResp = await client.getPaginatedApplications('', 0, 0, true);
+                            return parseInt(appsResp.headers['x-total-count'] || '0');
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get applications count:', error);
+                            return 0;
+                        }
+                    case 'sources':
+                        const sources = await client.getSources();
+                        return sources.length;
+                    case 'transforms':
+                        const transforms = await client.getTransforms();
+                        return transforms.length;
+                    case 'workflows':
+                        const workflows = await client.getWorflows();
+                        return workflows.length;
+                    case 'identity-profiles':
+                        const identityProfiles = await client.getIdentityProfiles();
+                        return identityProfiles.length;
+                    case 'rules':
+                        const rules = await client.getConnectorRules();
+                        return rules.length;
+                    case 'forms':
+                        const forms = await client.listForms();
+                        return forms.length;
+                    case 'governance-groups':
+                        const governanceGroups = await client.getGovernanceGroups();
+                        return governanceGroups.length;
+                    case 'campaigns':
+                        const campaignsResp = await client.getPaginatedCampaigns('', 0, 0, true);
+                        return parseInt(campaignsResp.headers['x-total-count'] || '0');
+                    case 'service-desk':
+                        const serviceDesks = await client.getServiceDesks();
+                        return serviceDesks.length;
+                    case 'segments':
+                        // Get segments count
+                        try {
+                            const segments = await client.getSegments();
+                            return segments.length;
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get segments count:', error);
+                            return 0;
+                        }
+                    default:
+                        // For other types, try AdapterLayer's default (uses cache)
+                        try {
+                            return await adapterLayer.getObjectCount(tenantId, objectType);
+                        } catch (error) {
+                            console.warn(`[HomePanel] Could not get count for ${objectType}:`, error);
+                            return 0;
+                        }
+                }
+            } else {
+                // For types not in AdapterLayer, use direct API calls with count headers
+                switch (entityType) {
+                    case 'segments':
+                        // Get segments count
+                        try {
+                            const segments = await client.getSegments();
+                            return segments.length;
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get segments count:', error);
+                            return 0;
+                        }
+                    case 'role-insights':
+                        // Role insights are typically accessed via search or specific queries
+                        // For now, return 0 as there's no direct count API
+                        return 0;
+                    case 'metadata':
+                        // Metadata is typically accessed per entity, not as a global list
+                        // For now, return 0 as there's no direct count API
+                        return 0;
+                    case 'launchers':
+                        // Launchers are typically accessed via search
+                        // For now, return 0 as there's no direct count API
+                        return 0;
+                    case 'accounts':
+                        // Get total account count using count API (don't fetch all accounts)
+                        try {
+                            return await client.getTotalAccountCount();
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get accounts count:', error);
+                            return 0;
+                        }
+                    case 'entitlements':
+                        // Get total entitlement count using count API (don't fetch all entitlements)
+                        try {
+                            return await client.getTotalEntitlementCount();
+                        } catch (error) {
+                            console.warn('[HomePanel] Could not get entitlements count:', error);
+                            return 0;
+                        }
+                    case 'access-history':
+                        // Use search API with count for access history
+                        const accessHistorySearch: Search = {
+                            indices: ['accessprofiles', 'roles', 'entitlements'],
+                            query: {
+                                query: '*'
+                            }
+                        };
+                        // Note: Search API doesn't return count header, so we'll use a workaround
+                        // For now, return 0 as access-history is typically accessed via specific queries
+                        return 0;
+                    case 'outliers':
+                        // Use search API for outliers
+                        // Note: Outliers are typically accessed via specific queries, not a full list
+                        return 0;
+                    case 'activities':
+                        // Activities are typically accessed via specific queries, not a full list
+                        return 0;
+                    case 'identity-attributes':
+                        const identityAttrs = await client.getIdentityAttributes();
+                        return identityAttrs.length;
+                    case 'search-attributes':
+                        const searchAttrs = await client.getSearchAttributes();
+                        return searchAttrs.length;
+                    default:
+                        // Fallback: return 0 for unknown types
+                        return 0;
+                }
+            }
+        } catch (error) {
+            console.error(`[HomePanel] Error getting count for ${entityType}:`, error);
+            return 0;
+        }
+    }
+
     private async fetchEntities(entityType: EntityType, options?: { offset?: number; limit?: number; searchQuery?: string }): Promise<any[]> {
         const tenantId = this.navigationState.tenantId;
         
@@ -412,7 +716,6 @@ export class HomePanel {
                 'campaigns': 'campaigns',
                 'service-desk': 'service-desk',
                 'notification-templates': undefined,
-                'segments': undefined,
                 'tags': undefined,
                 'identities': 'identities',
                 'identity-attributes': undefined,
@@ -430,7 +733,20 @@ export class HomePanel {
                 'virtual-appliances': undefined, // Link-only type
                 'integrations': undefined, // Link-only type
                 'multi-host-sources': undefined, // Link-only type
-                'credential-providers': undefined // Link-only type
+                'credential-providers': undefined, // Link-only type
+                'email-templates': undefined, // Special page - needs custom implementation
+                'reports': undefined, // Special page - needs custom implementation
+                'event-triggers': undefined, // Special page - needs custom implementation
+                'password-management': undefined, // Special page - needs custom implementation
+                'parameter-storage': undefined, // Special page - needs custom implementation
+                'system-settings': undefined, // Special page - needs custom implementation
+                'additional-settings': undefined, // Special page - needs custom implementation
+                'security-settings': undefined, // Special page - needs custom implementation
+                'configuration-hub': undefined, // Special page - needs custom implementation
+                'request-center': undefined, // Special page - needs custom implementation
+                'approvals': undefined, // Special page - needs custom implementation
+                'certifications': undefined, // Special page - needs custom implementation
+                'campaign-filter': undefined // Special page - needs custom implementation
             };
 
             const objectType = objectTypeMap[entityType];
@@ -468,17 +784,20 @@ export class HomePanel {
                         entities = entities.slice(offset, offset + limit);
                         break;
                     case 'accounts':
-                        // Fetch accounts with pagination
-                        const accountsResp = await client.getAccounts({
-                            limit,
-                            offset,
-                            filters: searchQuery ? `name sw "${searchQuery}"` : undefined
-                        });
-                        entities = accountsResp.data || [];
+                        // Fetch accounts with pagination using search API
+                        // Note: 'accounts' is not a valid search index, use 'identities' and filter by account attributes
+                        const accountsSearch: Search = {
+                            indices: ['identities'],
+                            query: {
+                                query: searchQuery ? `accounts.name sw "${searchQuery}"` : '*'
+                            },
+                            sort: ['name']
+                        };
+                        entities = await client.search(accountsSearch, limit);
+                        entities = entities.slice(offset, offset + limit);
                         break;
                     case 'access-history':
                         // Use Search API for access history (events index)
-                        const { Search } = await import('sailpoint-api-client');
                         const accessHistorySearch: Search = {
                             indices: ['events'],
                             query: {
@@ -491,8 +810,7 @@ export class HomePanel {
                         break;
                     case 'outliers':
                         // Use Search API for outliers (search identities with outlier flag)
-                        const { Search: OutlierSearch } = await import('sailpoint-api-client');
-                        const outlierSearch: OutlierSearch = {
+                        const outlierSearch: Search = {
                             indices: ['identities'],
                             query: {
                                 query: searchQuery ? `name sw "${searchQuery}" AND attributes.outlier:true` : 'attributes.outlier:true'
@@ -504,8 +822,7 @@ export class HomePanel {
                         break;
                     case 'activities':
                         // Use Search API for activities (events index with activity type)
-                        const { Search: ActivitySearch } = await import('sailpoint-api-client');
-                        const activitySearch: ActivitySearch = {
+                        const activitySearch: Search = {
                             indices: ['events'],
                             query: {
                                 query: searchQuery ? `type:activity AND name sw "${searchQuery}"` : 'type:activity'
@@ -539,8 +856,7 @@ export class HomePanel {
                         break;
                     case 'role-insights':
                         // Use Search API for role insights (search roles with insights)
-                        const { Search: RoleInsightSearch } = await import('sailpoint-api-client');
-                        const roleInsightSearch: RoleInsightSearch = {
+                        const roleInsightSearch: Search = {
                             indices: ['roles'],
                             query: {
                                 query: searchQuery ? `name sw "${searchQuery}"` : '*'
@@ -552,8 +868,7 @@ export class HomePanel {
                         break;
                     case 'metadata':
                         // Use Search API for metadata (search access profiles and roles with metadata)
-                        const { Search: MetadataSearch } = await import('sailpoint-api-client');
-                        const metadataSearch: MetadataSearch = {
+                        const metadataSearch: Search = {
                             indices: ['accessprofiles', 'roles'],
                             query: {
                                 query: searchQuery ? `name sw "${searchQuery}" AND accessModelMetadata:*` : 'accessModelMetadata:*'
@@ -768,7 +1083,11 @@ export class HomePanel {
         function newRule() { showLoader('Creating rule...'); vscode.postMessage({ command: 'newRule' }); }
         function openAutomation() { vscode.postMessage({ command: 'openAutomation' }); }
         function selectAutomationTask(taskId) { vscode.postMessage({ command: 'selectAutomationTask', taskId: taskId }); }
-        function executeAutomationTask(taskId, config) { showLoader('Executing task...'); vscode.postMessage({ command: 'executeAutomationTask', taskId: taskId, config: config }); }
+        function executeAutomationTask(taskId, config) { 
+            console.log('executeAutomationTask called:', taskId, config);
+            showLoader('Executing task...'); 
+            vscode.postMessage({ command: 'executeAutomationTask', taskId: taskId, config: config }); 
+        }
         function uploadCSVFile(file) { 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -932,36 +1251,67 @@ export class HomePanel {
                 ]
             },
             {
-                name: 'Workflows',
+                name: 'Access & Review',
                 items: [
-                    { type: 'workflows' as EntityType, label: 'Workflows' }
+                    { type: 'request-center' as EntityType, label: 'Request Center' },
+                    { type: 'approvals' as EntityType, label: 'Approvals' },
+                    { type: 'certifications' as EntityType, label: 'Certifications' },
+                    { type: 'campaigns' as EntityType, label: 'Campaigns' },
+                    { type: 'campaign-filter' as EntityType, label: 'Campaign Filter' }
                 ]
             },
             {
-                name: 'Certifications',
+                name: 'Global',
                 items: [
-                    { type: 'campaigns' as EntityType, label: 'Campaigns' }
-                ]
-            },
-            {
-                name: 'Reports & Tools',
-                items: [
+                    { type: 'workflows' as EntityType, label: 'Workflows' },
                     { type: 'forms' as EntityType, label: 'Forms' },
-                    { type: 'applications' as EntityType, label: 'Applications' }
+                    { type: 'email-templates' as EntityType, label: 'Email Templates' },
+                    { type: 'reports' as EntityType, label: 'Reports' },
+                    { type: 'event-triggers' as EntityType, label: 'Event Triggers' },
+                    { type: 'password-management' as EntityType, label: 'Password Management' },
+                    { type: 'parameter-storage' as EntityType, label: 'Parameter Storage' }
+                ]
+            },
+            {
+                name: 'Settings',
+                items: [
+                    { type: 'system-settings' as EntityType, label: 'System Settings' },
+                    { type: 'additional-settings' as EntityType, label: 'Additional Settings' },
+                    { type: 'security-settings' as EntityType, label: 'Security Settings' },
+                    { type: 'configuration-hub' as EntityType, label: 'Configuration Hub' }
                 ]
             }
         ];
         
         const entityTypes: { type: EntityType; label: string }[] = categories.flatMap(cat => cat.items);
 
-        // Get counts for all entity types (skip link-only types)
-        const linkOnlyTypes: EntityType[] = ['accounts', 'access-history', 'outliers', 'activities', 'entitlements', 'role-insights', 'metadata', 'segments', 'launchers', 'virtual-appliances', 'integrations', 'multi-host-sources', 'credential-providers'];
+        // Get counts for all entity types (skip special pages that don't have counts)
+        // Note: accounts, entitlements, segments now have counts
+        // role-insights, metadata, launchers, virtual-appliances don't have global count APIs (query-based or coming soon)
+        const linkOnlyTypes: EntityType[] = ['role-insights', 'metadata', 'launchers', 'access-history', 'outliers', 'activities', 'virtual-appliances', 'integrations', 'multi-host-sources', 'credential-providers', 'email-templates', 'reports', 'event-triggers', 'password-management', 'parameter-storage', 'system-settings', 'additional-settings', 'security-settings', 'configuration-hub', 'request-center', 'approvals', 'certifications', 'campaign-filter'];
+        
+        // Use cached counts when available to speed up page load
+        const tenantId = this.navigationState.tenantId || '';
         const counts = await Promise.all(entityTypes.map(async et => {
             if (linkOnlyTypes.includes(et.type)) {
                 return { type: et.type, count: 0 }; // Link-only types don't have counts in tenant view
             }
-            try { return { type: et.type, count: (await this.fetchEntities(et.type)).length }; }
-            catch { return { type: et.type, count: 0 }; }
+            
+            // Check cache first
+            const cacheKey = `${tenantId}-${et.type}-count`;
+            if (this.entityCountCache.has(cacheKey)) {
+                return { type: et.type, count: this.entityCountCache.get(cacheKey)! };
+            }
+            
+            try { 
+                const count = await this.getEntityCount(et.type);
+                // Cache the count for future use
+                this.entityCountCache.set(cacheKey, count);
+                return { type: et.type, count }; 
+            } catch (error) { 
+                console.error(`[HomePanel] Error getting count for ${et.type}:`, error);
+                return { type: et.type, count: 0 }; 
+            }
         }));
         const countMap = new Map(counts.map(c => [c.type, c.count]));
 
@@ -1013,6 +1363,8 @@ export class HomePanel {
         const allSyncInfo = syncManager.getAllSyncInfo();
         const activeSyncTenants = syncManager.getActiveSyncTenants();
         const tenants = this.tenantService.getTenants();
+        const currentIntervalMs = syncManager.getSyncIntervalMs();
+        const currentIntervalMinutes = Math.round(currentIntervalMs / 60000 * 10) / 10; // Round to 1 decimal place
 
         return `
             <div class="container">
@@ -1032,6 +1384,30 @@ export class HomePanel {
                             <strong>Active Sync Limit:</strong> Maximum ${activeSyncTenants.length} of 4 tenants can be actively syncing. 
                             Paused tenants are visible in the UI but do not run background refresh.
                         </p>
+                    </div>
+                    
+                    <div class="info-box" style="margin-bottom: 24px; padding: 16px; background: var(--bg-2); border-radius: var(--radius);">
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--fg-0);">Sync Interval (minutes)</label>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input 
+                                        type="number" 
+                                        id="syncIntervalInput" 
+                                        value="${currentIntervalMinutes}" 
+                                        min="0.17" 
+                                        max="60" 
+                                        step="0.1"
+                                        style="width: 120px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-1); color: var(--fg-0); font-size: 13px;"
+                                        onchange="updateSyncInterval()"
+                                    />
+                                    <button class="btn btn-primary" onclick="saveSyncInterval()" style="font-size: 12px; padding: 6px 12px;">Save</button>
+                                </div>
+                                <p style="margin: 4px 0 0 0; color: var(--fg-2); font-size: 11px;">
+                                    Current: ${currentIntervalMinutes} minutes (${Math.round(currentIntervalMs / 1000)}s). Range: 0.17-60 minutes (10s-1h).
+                                </p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="table-container">
@@ -1073,7 +1449,7 @@ export class HomePanel {
                                             <td class="cell-action">
                                                 ${isActive 
                                                     ? `<button class="btn btn-small btn-secondary" onclick="pauseSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;" title="Pause background synchronization. Cached data remains available.">Pause</button>`
-                                                    : `<button class="btn btn-small btn-primary" onclick="resumeSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;" ${isLimitReached ? 'disabled' : ''} title="${isLimitReached ? 'Maximum 4 tenants can sync simultaneously. Pause another tenant first.' : 'Activate background synchronization. Data refreshes every 60 seconds.'}">Activate</button>`
+                                                    : `<button class="btn btn-small btn-primary" onclick="resumeSync('${tenant.id}')" style="font-size: 12px; padding: 4px 8px;" ${isLimitReached ? 'disabled' : ''} title="${isLimitReached ? 'Maximum 4 tenants can sync simultaneously. Pause another tenant first.' : `Activate background synchronization. Data refreshes every ${currentIntervalMinutes} minutes.`}">Activate</button>`
                                                 }
                                             </td>
                                         </tr>
@@ -1096,6 +1472,38 @@ export class HomePanel {
                 
                 function refreshSyncStatus() {
                     vscode.postMessage({ command: 'refreshSyncStatus' });
+                }
+                
+                function updateSyncInterval() {
+                    // Validate input on change
+                    const input = document.getElementById('syncIntervalInput');
+                    if (input) {
+                        const value = parseFloat(input.value);
+                        if (value < 0.17) {
+                            input.value = '0.17';
+                        } else if (value > 60) {
+                            input.value = '60';
+                        }
+                    }
+                }
+                
+                function saveSyncInterval() {
+                    const input = document.getElementById('syncIntervalInput');
+                    if (!input) {
+                        return;
+                    }
+                    
+                    const minutes = parseFloat(input.value);
+                    if (isNaN(minutes) || minutes < 0.17 || minutes > 60) {
+                        alert('Please enter a value between 0.17 and 60 minutes');
+                        return;
+                    }
+                    
+                    const intervalMs = Math.round(minutes * 60000);
+                    vscode.postMessage({ 
+                        command: 'updateSyncInterval', 
+                        intervalMs: intervalMs 
+                    });
                 }
             </script>
         `;
@@ -1263,6 +1671,12 @@ export class HomePanel {
     private async _renderEntityListView(): Promise<string> {
         const entityType = this.navigationState.entityType!;
         
+        // Handle special pages that don't have entity lists
+        const specialPages: EntityType[] = ['email-templates', 'reports', 'event-triggers', 'password-management', 'parameter-storage', 'system-settings', 'additional-settings', 'security-settings', 'configuration-hub', 'request-center', 'approvals', 'certifications', 'campaign-filter', 'launchers', 'virtual-appliances'];
+        if (specialPages.includes(entityType)) {
+            return this._renderSpecialPage(entityType);
+        }
+        
         // Fetch entities with pagination (enforced max 250)
         const entities = await this.fetchEntities(entityType, {
             offset: this.entityListPagination.offset,
@@ -1301,7 +1715,28 @@ export class HomePanel {
                     'accounts': 'accounts',
                     'access-history': 'access-history',
                     'outliers': 'outliers',
-                    'activities': 'activities'
+                    'activities': 'activities',
+                    'entitlements': undefined,
+                    'role-insights': undefined,
+                    'metadata': undefined,
+                    'launchers': undefined,
+                    'virtual-appliances': undefined,
+                    'integrations': undefined,
+                    'multi-host-sources': undefined,
+                    'credential-providers': undefined,
+                    'email-templates': undefined,
+                    'reports': undefined,
+                    'event-triggers': undefined,
+                    'password-management': undefined,
+                    'parameter-storage': undefined,
+                    'system-settings': undefined,
+                    'additional-settings': undefined,
+                    'security-settings': undefined,
+                    'configuration-hub': undefined,
+                    'request-center': undefined,
+                    'approvals': undefined,
+                    'certifications': undefined,
+                    'campaign-filter': undefined
                 };
                 const objectType = objectTypeMap[entityType];
                 const newEntityTypes = ['accounts', 'access-history', 'outliers', 'activities', 'entitlements', 'role-insights', 'metadata', 'segments', 'launchers'];
@@ -1309,13 +1744,17 @@ export class HomePanel {
                     // For new entity types, get count from API
                     switch (entityType) {
                         case 'accounts':
-                            const accountsCountResp = await client.getAccounts({
-                                count: true,
-                                limit: 0,
-                                offset: 0,
-                                filters: this.searchQuery ? `name sw "${this.searchQuery}"` : undefined
-                            });
-                            totalCount = Number(accountsCountResp.headers[TOTAL_COUNT_HEADER] || 0);
+                            // For accounts, use search API to get count
+                            // Note: 'accounts' is not a valid search index, use 'identities' and filter by account attributes
+                            const accountsCountSearch: Search = {
+                                indices: ['identities'],
+                                query: {
+                                    query: this.searchQuery ? `accounts.name sw "${this.searchQuery}"` : '*'
+                                }
+                            };
+                            const accountsCountResults = await client.search(accountsCountSearch, 1);
+                            // Approximate count - if we have results, there might be more
+                            totalCount = accountsCountResults.length > 0 ? accountsCountResults.length + 1 : 0;
                             break;
                         case 'entitlements':
                             try {
@@ -1363,7 +1802,8 @@ export class HomePanel {
                         case 'launchers':
                             // For launchers, we need to fetch and filter, so count is approximate
                             // If we got a full page after filtering, there might be more
-                            totalCount = entities.length >= limit ? limit + 1 : entities.length;
+                            const launchersLimit = this.entityListPagination.limit;
+                            totalCount = entities.length >= launchersLimit ? launchersLimit + 1 : entities.length;
                             break;
                         case 'access-history':
                         case 'outliers':
@@ -1749,6 +2189,7 @@ export class HomePanel {
                     </div>
                 </div>
                 
+                ${task.id !== 'attribute-sync-impact-report' ? `
                 <section class="section">
                     <h2 class="section-title">Input Data</h2>
                     <div style="margin-bottom: 24px;">
@@ -1790,8 +2231,9 @@ export class HomePanel {
                         </div>
                     </div>
                 </section>
+                ` : ''}
                 
-                <section class="section" id="configSection" style="display: none;">
+                <section class="section" id="configSection" style="display: ${task.id === 'attribute-sync-impact-report' ? 'block' : 'none'};">
                     <h2 class="section-title">Task Configuration</h2>
                     <form id="taskConfigForm">
                         ${task.configFields.map(field => {
@@ -1874,6 +2316,25 @@ export class HomePanel {
                                     </div>
                                 `;
                             } else if (field.type === 'select') {
+                                // Special handling for sourceName field - load sources dynamically
+                                if (field.name === 'sourceName' && taskId === 'attribute-sync-impact-report') {
+                                    return `
+                                        <div style="margin-bottom: 16px;">
+                                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                                                ${this.esc(field.label)} ${field.required ? '<span style="color: var(--warning);">*</span>' : ''}
+                                            </label>
+                                            <select 
+                                                name="${field.name}" 
+                                                id="sourceNameSelect"
+                                                ${field.required ? 'required' : ''}
+                                                style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); color: var(--fg-0);"
+                                            >
+                                                <option value="">Loading sources...</option>
+                                            </select>
+                                            ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: var(--fg-2);">${this.esc(field.helpText)}</div>` : ''}
+                                        </div>
+                                    `;
+                                }
                                 return `
                                     <div style="margin-bottom: 16px;">
                                         <label style="display: block; margin-bottom: 8px; font-weight: 500;">
@@ -1919,9 +2380,50 @@ export class HomePanel {
                         </div>
                     </form>
                 </section>
+                
+                <section class="section" id="taskProgressContainer" style="display: none; margin-top: 24px;">
+                    <!-- Progress will be shown here -->
+                </section>
             </div>
             
             <script>
+                // Loader functions for this view
+                function showLoader(text = 'Loading...') {
+                    const loader = document.getElementById('loader');
+                    const loaderText = document.getElementById('loaderText');
+                    if (loaderText) loaderText.textContent = text;
+                    if (loader) loader.classList.add('active');
+                }
+                
+                function hideLoader() {
+                    const loader = document.getElementById('loader');
+                    if (loader) loader.classList.remove('active');
+                }
+                
+                // Load sources for attribute sync impact report
+                ${taskId === 'attribute-sync-impact-report' ? `
+                (function() {
+                    // Wait for DOM to be ready
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', loadSources);
+                    } else {
+                        loadSources();
+                    }
+                    
+                    function loadSources() {
+                        const select = document.getElementById('sourceNameSelect');
+                        if (select) {
+                            showLoader('Loading sources...');
+                            vscode.postMessage({ 
+                                command: 'loadSourcesForDropdown'
+                            });
+                        } else {
+                            console.error('sourceNameSelect not found, retrying...');
+                            setTimeout(loadSources, 100);
+                        }
+                    }
+                })();
+                ` : ''}
                 let currentInputData = [];
                 
                 function showSearchInput() {
@@ -2045,22 +2547,31 @@ export class HomePanel {
                 }).join('')}
                 
                 async function launchTask(taskId) {
+                    console.log('Launching task:', taskId);
                     const form = document.getElementById('taskConfigForm');
+                    if (!form) {
+                        alert('Form not found');
+                        return;
+                    }
+                    
                     if (!form.checkValidity()) {
                         form.reportValidity();
                         return;
                     }
                     
-                    if (currentInputData.length === 0) {
+                    // For attribute sync impact report, no input data is needed
+                    if (taskId !== 'attribute-sync-impact-report' && currentInputData.length === 0) {
                         alert('Please provide input data (search query or CSV file)');
                         return;
                     }
                     
-                    // Check owner is selected
-                    const ownerId = document.getElementById('ownerIdInput').value;
-                    if (!ownerId) {
-                        alert('Please search and select an owner identity');
-                        return;
+                    // Check owner is selected (only for tasks that require owner)
+                    if (taskId !== 'attribute-sync-impact-report') {
+                        const ownerId = document.getElementById('ownerIdInput');
+                        if (ownerId && !ownerId.value) {
+                            alert('Please search and select an owner identity');
+                            return;
+                        }
                     }
                     
                     const formData = new FormData(form);
@@ -2071,7 +2582,10 @@ export class HomePanel {
                     
                     // Handle checkboxes
                     ${task.configFields.filter(f => f.type === 'checkbox').map(f => `
-                        config['${f.name}'] = document.querySelector('input[name="${f.name}"]').checked;
+                        const ${f.name}Checkbox = document.querySelector('input[name="${f.name}"]');
+                        if (${f.name}Checkbox) {
+                            config['${f.name}'] = ${f.name}Checkbox.checked;
+                        }
                     `).join('')}
                     
                     // Handle select fields
@@ -2082,6 +2596,16 @@ export class HomePanel {
                         }
                     `).join('')}
                     
+                    console.log('Task config:', config);
+                    
+                    // Show progress container
+                    const progressContainer = document.getElementById('taskProgressContainer');
+                    if (progressContainer) {
+                        progressContainer.style.display = 'block';
+                        progressContainer.innerHTML = '<div style="padding: 12px; background: var(--bg-2); border-radius: var(--radius); border: 1px solid var(--border);"><div style="font-weight: 500; margin-bottom: 8px; color: var(--fg-0);">Task Progress</div><div id="taskProgressLog" style="font-size: 12px; color: var(--fg-2); font-family: monospace; max-height: 200px; overflow-y: auto; white-space: pre-wrap; background: var(--bg-1); padding: 8px; border-radius: var(--radius);"></div></div>';
+                    }
+                    
+                    showLoader('Starting task...');
                     executeAutomationTask(taskId, { inputData: currentInputData, config: config });
                 }
                 
@@ -2166,13 +2690,60 @@ export class HomePanel {
                                 \`;
                             }
                         }
+                    } else if (msg.command === 'taskProgress') {
+                        const progressLog = document.getElementById('taskProgressLog');
+                        if (progressLog) {
+                            const timestamp = new Date().toLocaleTimeString();
+                            progressLog.textContent += \`[\${timestamp}] \${msg.message}\\n\`;
+                            progressLog.scrollTop = progressLog.scrollHeight;
+                        }
                     } else if (msg.command === 'taskExecutionResult') {
                         hideLoader();
+                        const progressContainer = document.getElementById('taskProgressContainer');
+                        const progressLog = document.getElementById('taskProgressLog');
+                        if (progressLog) {
+                            const timestamp = new Date().toLocaleTimeString();
+                            if (msg.result.success) {
+                                progressLog.textContent += \`[\${timestamp}] ✓ Task completed successfully!\\n\`;
+                                progressLog.textContent += \`[\${timestamp}] \${msg.result.message}\\n\`;
+                            } else {
+                                progressLog.textContent += \`[\${timestamp}] ✗ Task failed\\n\`;
+                                progressLog.textContent += \`[\${timestamp}] \${msg.result.message}\\n\`;
+                                if (msg.result.errors && msg.result.errors.length > 0) {
+                                    progressLog.textContent += \`[\${timestamp}] Errors: \${msg.result.errors.join(', ')}\\n\`;
+                                }
+                            }
+                            progressLog.scrollTop = progressLog.scrollHeight;
+                        }
                         if (msg.result.success) {
-                            alert('Task executed successfully: ' + msg.result.message);
-                            goBack();
+                            setTimeout(() => {
+                                alert('Task executed successfully: ' + msg.result.message);
+                                goBack();
+                            }, 1000);
                         } else {
                             alert('Task failed: ' + msg.result.message + '\\n' + (msg.result.errors || []).join('\\n'));
+                        }
+                    } else if (msg.command === 'sourcesLoaded') {
+                        hideLoader();
+                        const select = document.getElementById('sourceNameSelect');
+                        if (select) {
+                            select.innerHTML = '<option value="">Select source...</option>';
+                            if (msg.sources && msg.sources.length > 0) {
+                                msg.sources.forEach(source => {
+                                    const option = document.createElement('option');
+                                    option.value = source.value;
+                                    option.textContent = source.label;
+                                    select.appendChild(option);
+                                });
+                            } else {
+                                const option = document.createElement('option');
+                                option.value = '';
+                                option.textContent = msg.error || 'No sources found';
+                                option.disabled = true;
+                                select.appendChild(option);
+                            }
+                        } else {
+                            console.error('sourceNameSelect element not found');
                         }
                     }
                 });
@@ -2204,11 +2775,59 @@ export class HomePanel {
             'metadata': 'Metadata', 'segments': 'Segments', 'launchers': 'Launchers',
             'virtual-appliances': 'Virtual Appliances', 'integrations': 'Integrations',
             'multi-host-sources': 'Multi-Host Sources', 'credential-providers': 'Credential Providers',
+            'email-templates': 'Email Templates', 'reports': 'Reports',
+            'event-triggers': 'Event Triggers', 'password-management': 'Password Management',
+            'parameter-storage': 'Parameter Storage', 'system-settings': 'System Settings',
+            'additional-settings': 'Additional Settings', 'security-settings': 'Security Settings',
+            'configuration-hub': 'Configuration Hub', 'request-center': 'Request Center',
+            'approvals': 'Approvals', 'certifications': 'Certifications', 'campaign-filter': 'Campaign Filter',
             'source': 'Source', 'transform': 'Transform', 'workflow': 'Workflow',
             'rule': 'Rule', 'access-profile': 'Access Profile', 'role': 'Role',
             'identity': 'Identity', 'identity-profile': 'Identity Profile'
         };
         return labels[type] || type;
+    }
+
+    private _renderSpecialPage(entityType: EntityType): string {
+        const pageLabels: Partial<Record<EntityType, string>> = {
+            'email-templates': 'Email Templates',
+            'reports': 'Reports',
+            'event-triggers': 'Event Triggers',
+            'password-management': 'Password Management',
+            'parameter-storage': 'Parameter Storage',
+            'system-settings': 'System Settings',
+            'additional-settings': 'Additional Settings',
+            'security-settings': 'Security Settings',
+            'configuration-hub': 'Configuration Hub',
+            'request-center': 'Request Center',
+            'approvals': 'Approvals',
+            'certifications': 'Certifications',
+            'campaign-filter': 'Campaign Filter',
+            'launchers': 'Launchers',
+            'virtual-appliances': 'Virtual Appliances'
+        };
+        
+        const label = pageLabels[entityType] || this._getEntityLabel(entityType);
+        
+        return `
+            <div class="container">
+                <div class="page-header">
+                    <div>
+                        <h1>${label}</h1>
+                        <p class="subtitle">This page is coming soon</p>
+                    </div>
+                </div>
+                
+                <section class="section">
+                    <div class="info-box" style="padding: 24px; background: var(--bg-2); border-radius: var(--radius); text-align: center;">
+                        <p style="margin: 0; color: var(--fg-2); font-size: 14px;">
+                            The ${label} page is currently under development. 
+                            This feature will be available in a future update.
+                        </p>
+                    </div>
+                </section>
+            </div>
+        `;
     }
 
     private _getStyles(): string {
@@ -2582,7 +3201,6 @@ export class HomePanel {
             }
 
             const client = new ISCClient(tenantId, tenantInfo.tenantName || tenantInfo.name);
-            const { Search } = await import('sailpoint-api-client');
             
             const searchPayload: Search = {
                 indices: ['identities'],
@@ -2631,6 +3249,55 @@ export class HomePanel {
         }
     }
 
+    private async handleLoadSourcesForDropdown(): Promise<void> {
+        const tenantId = this.navigationState.tenantId;
+        
+        if (!tenantId) {
+            console.warn('[HomePanel] No tenantId available for loading sources');
+            this._panel.webview.postMessage({
+                command: 'sourcesLoaded',
+                sources: [],
+                error: 'No tenant selected'
+            });
+            return;
+        }
+
+        // Get tenant info to ensure we have the correct tenant name
+        const tenantInfo = this.tenantService.getTenant(tenantId);
+        if (!tenantInfo) {
+            console.warn('[HomePanel] Tenant not found:', tenantId);
+            this._panel.webview.postMessage({
+                command: 'sourcesLoaded',
+                sources: [],
+                error: 'Tenant not found'
+            });
+            return;
+        }
+
+        // Use tenantName from tenantInfo (should be the API tenant name without spaces)
+        const tenantName = tenantInfo.tenantName || tenantInfo.name;
+
+        try {
+            console.log('[HomePanel] Loading sources for tenant:', tenantId, tenantName);
+            const { AutomationTasksService } = await import('../../services/AutomationTasks');
+            const automationService = AutomationTasksService.getInstance();
+            const sources = await automationService.getSourcesForDropdown(tenantId, tenantName);
+            
+            console.log('[HomePanel] Loaded sources:', sources.length);
+            this._panel.webview.postMessage({
+                command: 'sourcesLoaded',
+                sources: sources
+            });
+        } catch (error: any) {
+            console.error('[HomePanel] Error loading sources:', error);
+            this._panel.webview.postMessage({
+                command: 'sourcesLoaded',
+                sources: [],
+                error: error.message || 'Failed to load sources'
+            });
+        }
+    }
+
     private async handleExecuteAutomationTask(message: any): Promise<void> {
         const tenantId = this.navigationState.tenantId;
         
@@ -2650,6 +3317,7 @@ export class HomePanel {
         const tenantName = tenantInfo.tenantName || tenantInfo.name;
 
         try {
+            console.log('[HomePanel] Executing task:', message.taskId, 'with config:', message.config);
             this._panel.webview.postMessage({ command: 'showLoader', message: 'Executing task...' });
             
             const { AutomationTasksService } = await import('../../services/AutomationTasks');
@@ -2661,13 +3329,26 @@ export class HomePanel {
             }
 
             const client = new ISCClient(tenantId, tenantName);
+            
+            // Progress callback to send updates to webview
+            const progressCallback = (progressMessage: string) => {
+                console.log('[HomePanel] Task progress:', progressMessage);
+                this._panel.webview.postMessage({
+                    command: 'taskProgress',
+                    message: progressMessage
+                });
+            };
+            
             const result = await task.execute(
                 client,
                 tenantId,
                 tenantName,
                 message.config.inputData || [],
-                message.config.config || {}
+                message.config.config || {},
+                progressCallback
             );
+            
+            console.log('[HomePanel] Task execution result:', result);
 
             this._panel.webview.postMessage({
                 command: 'taskExecutionResult',

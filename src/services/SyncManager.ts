@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import * as vscode from 'vscode';
 import { TenantService } from './TenantService';
 
 /**
@@ -45,7 +46,7 @@ export class SyncManager extends EventEmitter {
     private readonly MAX_ACTIVE_SYNC = 4;
     private tenantSyncStates: Map<string, TenantSyncInfo> = new Map();
     private syncIntervals: Map<string, NodeJS.Timeout> = new Map();
-    private readonly SYNC_INTERVAL_MS = 60000; // 60 seconds
+    private readonly DEFAULT_SYNC_INTERVAL_MS = 300000; // 5 minutes (default)
 
     private constructor(private tenantService: TenantService) {
         super();
@@ -245,19 +246,54 @@ export class SyncManager extends EventEmitter {
     }
 
     /**
+     * Get sync interval in milliseconds
+     */
+    public getSyncIntervalMs(): number {
+        const config = vscode.workspace.getConfiguration('sp-isc-devtools');
+        return config.get<number>('sync.intervalMs', this.DEFAULT_SYNC_INTERVAL_MS);
+    }
+
+    /**
+     * Set sync interval in milliseconds
+     */
+    public async setSyncIntervalMs(intervalMs: number): Promise<void> {
+        if (intervalMs < 10000) {
+            throw new Error('Sync interval must be at least 10 seconds (10000ms)');
+        }
+        if (intervalMs > 3600000) {
+            throw new Error('Sync interval must be at most 1 hour (3600000ms)');
+        }
+        
+        const config = vscode.workspace.getConfiguration('sp-isc-devtools');
+        await config.update('sync.intervalMs', intervalMs, vscode.ConfigurationTarget.Global);
+        
+        // Restart all active sync loops with new interval
+        const activeTenants = this.getActiveSyncTenants();
+        for (const tenantId of activeTenants) {
+            this.stopSyncLoop(tenantId);
+            this.startSyncLoop(tenantId);
+        }
+        
+        this.emit('syncIntervalChanged', { intervalMs });
+    }
+
+    /**
      * Start background sync loop for a tenant
      */
     private startSyncLoop(tenantId: string): void {
         // Stop existing loop if any
         this.stopSyncLoop(tenantId);
 
+        // Get current sync interval from configuration
+        const intervalMs = this.getSyncIntervalMs();
+
         // Start new loop
         const interval = setInterval(() => {
             this.emit('syncTrigger', { tenantId });
-        }, this.SYNC_INTERVAL_MS);
+        }, intervalMs);
 
         this.syncIntervals.set(tenantId, interval);
-        console.log(`[SyncManager] Started sync loop for tenant ${tenantId}`);
+        console.log(`[SyncManager] Started sync loop for tenant ${tenantId} with interval ${intervalMs}ms (${intervalMs / 1000}s)`);
     }
 
     /**

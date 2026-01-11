@@ -902,6 +902,21 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}));
 
+	// Identity Editor
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.OPEN_IDENTITY_EDITOR, async (item: any) => {
+			if (item?.tenantId && item?.id) {
+				const { IdentityEditorPanel } = await import('./webviews/identity-editor/IdentityEditorPanel');
+				await IdentityEditorPanel.createOrShow(
+					context.extensionUri,
+					tenantService,
+					item.tenantId,
+					item.tenantName,
+					item.id
+				);
+			}
+		}));
+
 	// Workflow Editor - visual workflow builder with AI integration
 	context.subscriptions.push(
 		vscode.commands.registerCommand(commands.OPEN_WORKFLOW_EDITOR, async (item: any) => {

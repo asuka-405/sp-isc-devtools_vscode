@@ -118,7 +118,7 @@ export class TenantTreeItem extends BaseTreeItem {
 			
 			// Add helpful context
 			if (syncInfo.state === SyncState.ACTIVE_SYNC) {
-				tooltip += `\n💡 Background sync active - data refreshes every 60 seconds`;
+				tooltip += `\n💡 Background sync active - data refreshes at configured intervals`;
 			} else if (syncInfo.state === SyncState.PAUSED) {
 				tooltip += `\n💡 Sync paused - click to activate or manually refresh`;
 			} else if (syncInfo.state === SyncState.ERROR) {

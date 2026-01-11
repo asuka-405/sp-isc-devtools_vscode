@@ -1,6 +1,6 @@
 import { ISCClient } from './ISCClient';
 import { SearchService } from './SearchService';
-import { AccessProfile } from 'sailpoint-api-client';
+import { AccessProfile, Search } from 'sailpoint-api-client';
 import * as vscode from 'vscode';
 import { stringToAttributeMetadata } from '../utils/metadataUtils';
 
@@ -22,6 +22,11 @@ export interface TaskResult {
 }
 
 /**
+ * Progress callback function type
+ */
+export type ProgressCallback = (message: string) => void;
+
+/**
  * Task definition interface
  */
 export interface TaskDefinition {
@@ -32,7 +37,7 @@ export interface TaskDefinition {
     inputType: 'search' | 'csv' | 'both';
     inputEntityType?: string; // e.g., 'entitlements', 'identities'
     configFields: TaskConfigField[];
-    execute: (client: ISCClient, tenantId: string, tenantName: string, inputData: any[], config: TaskConfig) => Promise<TaskResult>;
+    execute: (client: ISCClient, tenantId: string, tenantName: string, inputData: any[], config: TaskConfig, progress?: ProgressCallback) => Promise<TaskResult>;
 }
 
 /**
@@ -273,7 +278,31 @@ export class AutomationTasksService {
                     helpText: 'Format: key1:value1,value2;key2:value3. Use {{entitlement.*}} placeholders for dynamic values.'
                 }
             ],
-            execute: this.executeBundleEntitlementsAccessProfile.bind(this)
+            execute: async (client, tenantId, tenantName, inputData, config, progress) => {
+                return this.executeBundleEntitlementsAccessProfile(client, tenantId, tenantName, inputData, config, progress);
+            }
+        });
+
+        // Register Attribute Sync Impact Report task
+        this.tasks.set('attribute-sync-impact-report', {
+            id: 'attribute-sync-impact-report',
+            name: 'Generate Attribute Sync Impact Report',
+            description: 'Generate a report comparing account attribute values with identity cube values based on create account policy',
+            icon: '📊',
+            inputType: 'search', // No input needed, source is selected from dropdown
+            configFields: [
+                {
+                    name: 'sourceName',
+                    label: 'Source',
+                    type: 'select',
+                    required: true,
+                    placeholder: 'Select source...',
+                    helpText: 'Select the source to generate the impact report for'
+                }
+            ],
+            execute: async (client, tenantId, tenantName, inputData, config, progress) => {
+                return this.executeAttributeSyncImpactReport(client, tenantId, tenantName, inputData, config, progress);
+            }
         });
 
         // Add more tasks here as needed
@@ -302,7 +331,8 @@ export class AutomationTasksService {
         tenantId: string,
         tenantName: string,
         entitlements: any[],
-        config: TaskConfig
+        config: TaskConfig,
+        progress?: ProgressCallback
     ): Promise<TaskResult> {
         try {
             if (!entitlements || entitlements.length === 0) {
@@ -615,7 +645,6 @@ export class AutomationTasksService {
                     if (filter && filter !== query) {
                         console.log('[AutomationTasks] Retrying with original query format');
                         // Try using Search API instead
-                        const { Search } = await import('sailpoint-api-client');
                         const searchPayload: Search = {
                             indices: ['entitlements'],
                             query: {
@@ -631,7 +660,6 @@ export class AutomationTasksService {
             }
 
             // For other entity types, use Search API directly via ISCClient
-            const { Search } = await import('sailpoint-api-client');
             let indices: string[] = [];
             switch (entityType) {
                 case 'identities':
@@ -687,5 +715,374 @@ export class AutomationTasksService {
         }
 
         return data;
+    }
+
+    /**
+     * Execute: Attribute Sync Impact Report
+     * Generates a CSV report comparing account attribute values with identity cube values
+     */
+    private async executeAttributeSyncImpactReport(
+        client: ISCClient,
+        tenantId: string,
+        tenantName: string,
+        inputData: any[],
+        config: TaskConfig,
+        progress?: ProgressCallback
+    ): Promise<TaskResult> {
+        try {
+            const sourceName = config.sourceName;
+            if (!sourceName) {
+                return {
+                    success: false,
+                    message: 'Source name is required',
+                    errors: ['Source name not provided']
+                };
+            }
+
+            progress?.('Starting attribute sync impact report generation...');
+            progress?.(`Source: ${sourceName}`);
+
+            // Get source
+            progress?.('Fetching source information...');
+            const source = await client.getSourceByName(sourceName);
+            if (!source || !source.id) {
+                return {
+                    success: false,
+                    message: `Source '${sourceName}' not found`,
+                    errors: [`Source '${sourceName}' not found`]
+                };
+            }
+
+            const sourceId = source.id;
+            progress?.(`Source ID: ${sourceId}`);
+
+            // Get CREATE provisioning policy
+            progress?.('Fetching CREATE provisioning policy...');
+            const policies = await client.getProvisioningPolicies(sourceId);
+            const createPolicy = policies.find(p => p.usageType === 'CREATE');
+            
+            if (!createPolicy || !createPolicy.fields || createPolicy.fields.length === 0) {
+                return {
+                    success: false,
+                    message: `No CREATE provisioning policy found for source '${sourceName}' or policy has no fields`,
+                    errors: [`No CREATE provisioning policy found`]
+                };
+            }
+
+            progress?.(`Found CREATE policy with ${createPolicy.fields.length} fields`);
+
+            // Extract field mappings (account attribute -> identity attribute)
+            progress?.('Extracting field mappings from provisioning policy...');
+            const fieldMappings: Array<{ accountAttr: string; identityAttr: string }> = [];
+            
+            for (const field of createPolicy.fields) {
+                if (!field.name || !field.transform) {
+                    continue;
+                }
+
+                const identityAttr = this.extractIdentityAttributeFromTransform(field.transform);
+                if (identityAttr) {
+                    fieldMappings.push({
+                        accountAttr: field.name,
+                        identityAttr: identityAttr
+                    });
+                }
+            }
+
+            if (fieldMappings.length === 0) {
+                return {
+                    success: false,
+                    message: 'No identity attribute mappings found in CREATE provisioning policy',
+                    errors: ['No identity attribute mappings found']
+                };
+            }
+
+            progress?.(`Found ${fieldMappings.length} attribute mappings to analyze`);
+
+            // Get all accounts from source (paginated)
+            progress?.('Fetching accounts from source...');
+            const reportRows: any[] = [];
+            let offset = 0;
+            const limit = 250;
+            let hasMore = true;
+            let totalAccountsProcessed = 0;
+            let totalRowsGenerated = 0;
+
+            while (hasMore) {
+                progress?.(`Fetching accounts (offset: ${offset}, limit: ${limit})...`);
+                const accounts = await client.getAccountsBySource(sourceId, false, offset, limit);
+                
+                if (accounts.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+
+                progress?.(`Processing ${accounts.length} accounts...`);
+
+                // Process each account
+                for (let i = 0; i < accounts.length; i++) {
+                    const account = accounts[i];
+                    
+                    if (!account.identityId) {
+                        // Skip uncorrelated accounts
+                        continue;
+                    }
+
+                    totalAccountsProcessed++;
+                    if (totalAccountsProcessed % 50 === 0) {
+                        progress?.(`Processed ${totalAccountsProcessed} accounts, generated ${totalRowsGenerated} report rows...`);
+                    }
+
+                    // Get identity
+                    let identity: any;
+                    try {
+                        identity = await client.getIdentity(account.identityId);
+                    } catch (error: any) {
+                        console.warn(`[AttributeSyncImpact] Failed to get identity ${account.identityId}: ${error.message}`);
+                        continue;
+                    }
+
+                    if (!identity) {
+                        continue;
+                    }
+
+                    // Get account attributes
+                    const accountAttributes = account.attributes || {};
+                    const identityAttributes = identity.attributes || {};
+
+                    // For each field mapping, compare values
+                    for (const mapping of fieldMappings) {
+                        const accountValue = accountAttributes[mapping.accountAttr];
+                        const identityValue = identityAttributes[mapping.identityAttr];
+
+                        // Determine impact
+                        const impact = this.compareValues(accountValue, identityValue);
+
+                        // Get account details
+                        const accountId = account.id || '';
+                        const samAccountName = accountAttributes.sAMAccountName || accountAttributes.samAccountName || accountAttributes.userName || '';
+                        const email = accountAttributes.email || accountAttributes.mail || '';
+                        const displayName = accountAttributes.displayName || accountAttributes.displayName || accountAttributes.name || '';
+
+                        reportRows.push({
+                            accountId: accountId,
+                            samAccountName: samAccountName,
+                            email: email,
+                            displayName: displayName,
+                            accountAttribute: mapping.accountAttr,
+                            accountAttributeValue: this.formatValue(accountValue),
+                            identityAttribute: mapping.identityAttr,
+                            identityAttributeValue: this.formatValue(identityValue),
+                            impact: impact
+                        });
+                        totalRowsGenerated++;
+                    }
+                }
+
+                offset += limit;
+                if (accounts.length < limit) {
+                    hasMore = false;
+                }
+            }
+
+            progress?.(`Processing complete. Processed ${totalAccountsProcessed} accounts, generated ${totalRowsGenerated} report rows.`);
+
+            if (reportRows.length === 0) {
+                return {
+                    success: false,
+                    message: 'No accounts found or no correlated accounts to process',
+                    errors: ['No data to report']
+                };
+            }
+
+            // Generate CSV file
+            progress?.(`Generating CSV report with ${reportRows.length} rows...`);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            const fileName = `AttributeSyncImpactReport-${sourceName.replace(/[^a-zA-Z0-9]/g, '_')}-${timestamp}.csv`;
+            const filePath = await this.saveReportToFile(fileName, reportRows);
+            progress?.(`Report saved to: ${filePath}`);
+
+            return {
+                success: true,
+                message: `Report generated successfully with ${reportRows.length} rows. File saved to: ${filePath}`,
+                data: {
+                    filePath: filePath,
+                    rowCount: reportRows.length,
+                    sourceName: sourceName
+                }
+            };
+
+        } catch (error: any) {
+            console.error('[AttributeSyncImpact] Error:', error);
+            return {
+                success: false,
+                message: `Failed to generate report: ${error.message}`,
+                errors: [error.message]
+            };
+        }
+    }
+
+    /**
+     * Extract identity attribute name from transform
+     * Handles nested transforms and various transform types
+     */
+    private extractIdentityAttributeFromTransform(transform: any): string | null {
+        if (!transform || typeof transform !== 'object') {
+            return null;
+        }
+
+        // Direct identityAttribute transform
+        if (transform.type === 'identityAttribute' && transform.attributes?.name) {
+            return transform.attributes.name;
+        }
+
+        // Check nested transforms (e.g., in concat, conditional, etc.)
+        if (transform.attributes) {
+            // Check values array (for concat, firstValid, etc.)
+            if (Array.isArray(transform.attributes.values)) {
+                for (const value of transform.attributes.values) {
+                    if (typeof value === 'object' && value.type === 'identityAttribute' && value.attributes?.name) {
+                        return value.attributes.name;
+                    }
+                    // Recursive check
+                    const nested = this.extractIdentityAttributeFromTransform(value);
+                    if (nested) {
+                        return nested;
+                    }
+                }
+            }
+
+            // Check positiveCondition and negativeCondition (for conditional)
+            if (transform.attributes.positiveCondition) {
+                const pos = this.extractIdentityAttributeFromTransform(transform.attributes.positiveCondition);
+                if (pos) return pos;
+            }
+            if (transform.attributes.negativeCondition) {
+                const neg = this.extractIdentityAttributeFromTransform(transform.attributes.negativeCondition);
+                if (neg) return neg;
+            }
+
+            // Check input (for various transforms)
+            if (transform.attributes.input) {
+                const input = this.extractIdentityAttributeFromTransform(transform.attributes.input);
+                if (input) return input;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Compare two values and determine impact
+     */
+    private compareValues(accountValue: any, identityValue: any): string {
+        // Normalize values for comparison
+        const accountStr = this.normalizeValue(accountValue);
+        const identityStr = this.normalizeValue(identityValue);
+
+        if (accountStr === identityStr) {
+            return 'no-impact';
+        } else {
+            return 'impact';
+        }
+    }
+
+    /**
+     * Normalize value for comparison
+     */
+    private normalizeValue(value: any): string {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        if (typeof value === 'string') {
+            return value.trim().toLowerCase();
+        }
+        if (typeof value === 'number' || typeof value === 'boolean') {
+            return String(value).toLowerCase();
+        }
+        if (Array.isArray(value)) {
+            return value.map(v => this.normalizeValue(v)).join(',').toLowerCase();
+        }
+        return String(value).trim().toLowerCase();
+    }
+
+    /**
+     * Format value for CSV output
+     */
+    private formatValue(value: any): string {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        if (Array.isArray(value)) {
+            return value.join(';');
+        }
+        return String(value);
+    }
+
+    /**
+     * Save report to CSV file
+     */
+    private async saveReportToFile(fileName: string, rows: any[]): Promise<string> {
+        const fs = await import('fs');
+        const path = await import('path');
+        const os = await import('os');
+
+        // Use workspace folder or home directory
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const baseDir = workspaceFolder || os.homedir();
+        const reportsDir = path.join(baseDir, 'reports');
+
+        // Create reports directory if it doesn't exist
+        if (!fs.existsSync(reportsDir)) {
+            fs.mkdirSync(reportsDir, { recursive: true });
+        }
+
+        const filePath = path.join(reportsDir, fileName);
+
+        // Write CSV
+        const headers = [
+            'Account ID',
+            'SAM Account Name',
+            'Email',
+            'Display Name',
+            'Account Attribute',
+            'Account Attribute Value',
+            'Identity Attribute',
+            'Identity Attribute Value',
+            'Impact'
+        ];
+
+        const CSVWriter = (await import('./CSVWriter')).CSVWriter;
+        const csvWriter = new CSVWriter(
+            filePath,
+            headers,
+            ['accountId', 'samAccountName', 'email', 'displayName', 'accountAttribute', 'accountAttributeValue', 'identityAttribute', 'identityAttributeValue', 'impact']
+        );
+
+        await csvWriter.write(rows);
+        await csvWriter.end();
+
+        return filePath;
+    }
+
+    /**
+     * Get sources for dropdown options
+     * This is called by the UI to populate the source dropdown
+     */
+    public async getSourcesForDropdown(tenantId: string, tenantName: string): Promise<Array<{ value: string; label: string }>> {
+        try {
+            const client = new ISCClient(tenantId, tenantName);
+            const sources = await client.getSources();
+            return sources
+                .filter(s => s.name)
+                .map(s => ({
+                    value: s.name!,
+                    label: s.name!
+                }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+        } catch (error: any) {
+            console.error('[AutomationTasks] Error fetching sources:', error);
+            return [];
+        }
     }
 }

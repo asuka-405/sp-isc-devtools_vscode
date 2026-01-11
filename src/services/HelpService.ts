@@ -20,7 +20,7 @@ export class HelpService {
         // Tenant Management
         this.helpContent.set('tenant.sync', {
             title: 'Tenant Synchronization',
-            content: 'Background synchronization keeps tenant data up-to-date. Active sync tenants refresh every 60 seconds. Maximum 4 tenants can sync simultaneously.',
+            content: 'Background synchronization keeps tenant data up-to-date. Active sync tenants refresh at configured intervals (default: 5 minutes). Maximum 4 tenants can sync simultaneously.',
             link: 'https://developer.sailpoint.com/docs/'
         });
 
@@ -59,7 +59,7 @@ export class HelpService {
         // Sync Management
         this.helpContent.set('sync.activate', {
             title: 'Activate Sync',
-            content: 'Activates background synchronization for this tenant. Data refreshes every 60 seconds. Maximum 4 tenants can sync simultaneously.',
+            content: 'Activates background synchronization for this tenant. Data refreshes at configured intervals (default: 5 minutes). Maximum 4 tenants can sync simultaneously.',
             link: undefined
         });
 
