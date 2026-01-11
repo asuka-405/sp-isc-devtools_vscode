@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="resources/isc.png" alt="SailPoint ISC Dev Tools" width="128" height="128">
+  <img src="resources/isc.png" alt="SailPoint ISC Dev Tools" width="128" style="max-width: 128px; height: auto; aspect-ratio: 1 / 1; object-fit: contain;">
   <h1>SailPoint ISC Dev Tools for Visual Studio Code</h1>
 </div>
 
