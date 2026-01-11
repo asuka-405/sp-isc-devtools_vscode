@@ -782,6 +782,11 @@ The extension supports the following settings:
 
 ## Release Notes
 
+### Version 0.1.5
+
+- Version bump only. No functional or user-facing changes in this release; just trivial updates in `package.json` and `README.md`.
+
+
 ### Version 0.1.4
 
 - **Identity Editor Panel**: New comprehensive identity view with multiple tabs:
